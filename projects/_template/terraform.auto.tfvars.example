@@ -1,0 +1,16 @@
+# Copy this file to `terraform.auto.tfvars` and fill in values for your project.
+# `terraform.auto.tfvars` is committed (no secrets), so the project's settings
+# travel with the code.
+#
+# DO NOT put AWS credentials or any other secrets here. Set those as sensitive
+# environment variables in the HCP workspace instead.
+
+client_name  = "example-client"
+project_name = "example-project"
+environment  = "dev"
+aws_region   = "us-west-2"
+
+tags = {
+  Owner       = "media-lab"
+  CostCenter  = "research-internal"
+}

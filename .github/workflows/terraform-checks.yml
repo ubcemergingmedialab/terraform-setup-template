@@ -1,0 +1,17 @@
+# TODO: GitHub Actions workflow.
+# Triggers: pull_request, push to main.
+# Steps:
+#   - actions/checkout
+#   - hashicorp/setup-terraform
+#   - terraform fmt -check -recursive
+#   - terraform validate (per module + per project root)
+#   - terraform-linters/setup-tflint + tflint
+# No apply step — HCP Terraform owns apply.
+
+name: terraform-checks
+on: [pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "placeholder — implement when modules have real content"
