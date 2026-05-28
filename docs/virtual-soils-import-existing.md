@@ -1,5 +1,7 @@
 # Importing existing AWS resources
 
+See also **[`virtual-soils-hcp-deployment.md`](./virtual-soils-hcp-deployment.md)** for the full HCP setup story, IAM policy, and S3 bucket naming lessons.
+
 The Virtual Soils app already runs on manually provisioned resources in **ca-central-1** (account from your AWS console). This Terraform stack can adopt them instead of creating duplicates.
 
 **Do not apply a full create** while `legacy_*` names point at existing resources unless you have imported them or you intend to replace them.
@@ -9,7 +11,7 @@ The Virtual Soils app already runs on manually provisioned resources in **ca-cen
 | Resource | Identifier |
 |----------|------------|
 | DynamoDB | `eml_fields` (hash key `FieldID`) |
-| S3 | `eml-soils-db` (export bucket; confirm use for splats) |
+| S3 | `eml-soils-db` (legacy export name — **globally may be taken**; use generated `ubc-eml-virtual-soils-prod-assets-*` for Terraform-managed backups) |
 | Cognito user pool | `ca-central-1_VnLGRFo8k` |
 | Cognito app client | `q7bro5cdr1ucb3g7c00d420q5` |
 | Cognito domain | `ca-central-1vnlgrfo8k.auth.ca-central-1.amazoncognito.com` |

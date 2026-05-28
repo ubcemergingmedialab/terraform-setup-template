@@ -35,6 +35,7 @@ cd projects/ubc-eml/virtual-soils/lambda && npm ci
 
 GitHub Actions in this repo runs the same step on PRs.
 
-## Importing existing AWS resources
+## Documentation
 
-See [`docs/virtual-soils-import-existing.md`](../../docs/virtual-soils-import-existing.md).
+- **[Deployment runbook (IAM, debugging, lessons)](../../docs/virtual-soils-hcp-deployment.md)**
+- [Importing existing resources](../../docs/virtual-soils-import-existing.md)
