@@ -39,3 +39,4 @@ pins_field_ids = "TestA,TestB,TestC"
 create_iam_api_invoker = false
 
 enable_assets_bucket = true
+enable_static_site   = true

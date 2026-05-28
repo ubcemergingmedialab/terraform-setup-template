@@ -78,3 +78,12 @@ module "api_invoker" {
   api_execution_arn  = module.api.api_execution_arn
   allowed_route_arns = [local.pins_invoke_arn]
 }
+
+module "site" {
+  count  = var.enable_static_site ? 1 : 0
+  source = "../../../modules/s3-static-site"
+
+  name_prefix          = local.name_prefix
+  spa_routing          = true
+  cors_allowed_origins = var.cors_allow_origins
+}

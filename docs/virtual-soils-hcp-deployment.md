@@ -139,15 +139,26 @@ No sensitive Terraform *input* variables are required for Virtual Soils (Cognito
 
 ---
 
+### 7. CloudFront static site (`module.site`)
+
+**Issue:** Adding `s3-static-site` requires CloudFront and OAC permissions not in the original policy.
+
+**Resolution:** Add `CloudFrontVirtualSoils` and `CloudFrontListAccount` statements (see [Final IAM policy](#final-iam-policy)). Site S3 buckets (`ubc-eml-virtual-soils-prod-site-*`) are already covered by the existing `S3VirtualSoils` wildcard.
+
+**Separate role for app deploy (Task 5):** GitHub Actions that run `aws s3 sync` + `cloudfront create-invalidation` should **not** use `HCPTerraform`. Use a narrower deploy role — see [`docs/iam/github-deploy-virtual-soils-policy.json`](./iam/github-deploy-virtual-soils-policy.json).
+
+---
+
 ## After successful apply
 
-1. **HCP outputs** → Amplify:
+1. **HCP outputs** → frontend build (Amplify today, GitHub Actions + CloudFront after cutover):
+   - `site_url`, `site_bucket_name`, `cloudfront_distribution_id` → deploy pipeline
    - `api_endpoint` → `VITE_API_URL`
    - `cognito_user_pool_id` → `VITE_COGNITO_USER_POOL_ID`
    - `cognito_user_pool_client_id` → `VITE_COGNITO_CLIENT_ID`
    - `cognito_hosted_ui_domain` → `VITE_COGNITO_OAUTH_DOMAIN`
    - `assets_bucket_name` → backup/export jobs
-2. Ensure `cognito_callback_urls` / `cognito_logout_urls` in `terraform.auto.tfvars` include every Amplify URL (including preview branches if used).
+2. After first apply with `module.site`, add **`site_url`** to `cognito_callback_urls`, `cognito_logout_urls`, and `cors_allow_origins`, then re-apply.
 3. Replace hardcoded Cognito values in `src/auth.ts` and `src/Admin.tsx` when ready to cut over.
 4. Run **Plan only** periodically; expect **no** unexpected destroys.
 
@@ -157,250 +168,63 @@ No sensitive Terraform *input* variables are required for Virtual Soils (Cognito
 
 Attach this as a **customer managed policy** or **inline policy** on IAM role **`HCPTerraform`** in account **`940309384764`**.
 
+**Canonical copy in git:** [`docs/iam/hcp-terraform-virtual-soils-policy.json`](./iam/hcp-terraform-virtual-soils-policy.json) — paste from there if the console loses your edit.
+
 **Trust policy** (OIDC for HCP) is separate—configure via [HashiCorp dynamic credentials](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/dynamic-provider-credentials/aws-configuration), scoped to org `EML` and workspace `ubc-eml-virtual-soils`.
+
+The JSON below matches the file in git (includes **CloudFront** for `module.site`).
+
+### New statements for CloudFront (Task 3)
+
+If you are **appending** to an existing policy instead of replacing it, add these two blocks:
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "TerraformReadIdentity",
-      "Effect": "Allow",
-      "Action": "sts:GetCallerIdentity",
-      "Resource": "*"
-    },
-    {
-      "Sid": "DynamoDBVirtualSoils",
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:CreateTable",
-        "dynamodb:DeleteTable",
-        "dynamodb:DescribeTable",
-        "dynamodb:DescribeContinuousBackups",
-        "dynamodb:UpdateContinuousBackups",
-        "dynamodb:UpdateTable",
-        "dynamodb:DescribeTimeToLive",
-        "dynamodb:UpdateTimeToLive",
-        "dynamodb:TagResource",
-        "dynamodb:UntagResource",
-        "dynamodb:ListTagsOfResource"
-      ],
-      "Resource": [
-        "arn:aws:dynamodb:ca-central-1:940309384764:table/eml_fields",
-        "arn:aws:dynamodb:ca-central-1:940309384764:table/ubc-eml-virtual-soils-*"
-      ]
-    },
-    {
-      "Sid": "CognitoVirtualSoils",
-      "Effect": "Allow",
-      "Action": [
-        "cognito-idp:CreateUserPool",
-        "cognito-idp:DeleteUserPool",
-        "cognito-idp:DescribeUserPool",
-        "cognito-idp:UpdateUserPool",
-        "cognito-idp:GetUserPoolMfaConfig",
-        "cognito-idp:SetUserPoolMfaConfig",
-        "cognito-idp:CreateUserPoolClient",
-        "cognito-idp:DeleteUserPoolClient",
-        "cognito-idp:DescribeUserPoolClient",
-        "cognito-idp:UpdateUserPoolClient",
-        "cognito-idp:CreateUserPoolDomain",
-        "cognito-idp:DeleteUserPoolDomain",
-        "cognito-idp:DescribeUserPoolDomain",
-        "cognito-idp:UpdateUserPoolDomain",
-        "cognito-idp:TagResource",
-        "cognito-idp:UntagResource",
-        "cognito-idp:ListTagsForResource"
-      ],
-      "Resource": "arn:aws:cognito-idp:ca-central-1:940309384764:userpool/*"
-    },
-    {
-      "Sid": "CognitoDescribeUserPoolDomainGlobal",
-      "Effect": "Allow",
-      "Action": "cognito-idp:DescribeUserPoolDomain",
-      "Resource": "*"
-    },
-    {
-      "Sid": "LambdaVirtualSoils",
-      "Effect": "Allow",
-      "Action": [
-        "lambda:CreateFunction",
-        "lambda:DeleteFunction",
-        "lambda:GetFunction",
-        "lambda:GetFunctionConfiguration",
-        "lambda:GetFunctionCodeSigningConfig",
-        "lambda:UpdateFunctionCode",
-        "lambda:UpdateFunctionConfiguration",
-        "lambda:ListVersionsByFunction",
-        "lambda:PublishVersion",
-        "lambda:AddPermission",
-        "lambda:RemovePermission",
-        "lambda:GetPolicy",
-        "lambda:TagResource",
-        "lambda:UntagResource",
-        "lambda:ListTags"
-      ],
-      "Resource": "arn:aws:lambda:ca-central-1:940309384764:function:ubc-eml-virtual-soils-*"
-    },
-    {
-      "Sid": "ApiGatewayV2VirtualSoils",
-      "Effect": "Allow",
-      "Action": [
-        "apigateway:GET",
-        "apigateway:POST",
-        "apigateway:PUT",
-        "apigateway:PATCH",
-        "apigateway:DELETE",
-        "apigateway:TagResource",
-        "apigateway:UntagResource"
-      ],
-      "Resource": [
-        "arn:aws:apigateway:ca-central-1::/apis",
-        "arn:aws:apigateway:ca-central-1::/apis/*",
-        "arn:aws:apigateway:ca-central-1::/tags/*"
-      ]
-    },
-    {
-      "Sid": "LogsDescribeAccount",
-      "Effect": "Allow",
-      "Action": "logs:DescribeLogGroups",
-      "Resource": "*"
-    },
-    {
-      "Sid": "LogsVirtualSoils",
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:DeleteLogGroup",
-        "logs:PutRetentionPolicy",
-        "logs:DeleteRetentionPolicy",
-        "logs:ListTagsForResource",
-        "logs:TagResource",
-        "logs:UntagResource"
-      ],
-      "Resource": [
-        "arn:aws:logs:ca-central-1:940309384764:log-group:/aws/lambda/ubc-eml-virtual-soils-*",
-        "arn:aws:logs:ca-central-1:940309384764:log-group:/aws/lambda/ubc-eml-virtual-soils-*:*"
-      ]
-    },
-    {
-      "Sid": "S3VirtualSoils",
-      "Effect": "Allow",
-      "Action": [
-        "s3:CreateBucket",
-        "s3:DeleteBucket",
-        "s3:ListBucket",
-        "s3:GetAccelerateConfiguration",
-        "s3:PutAccelerateConfiguration",
-        "s3:GetBucketAcl",
-        "s3:PutBucketAcl",
-        "s3:GetBucketCORS",
-        "s3:PutBucketCORS",
-        "s3:GetBucketLocation",
-        "s3:GetBucketLogging",
-        "s3:PutBucketLogging",
-        "s3:GetBucketNotification",
-        "s3:PutBucketNotification",
-        "s3:GetBucketObjectLockConfiguration",
-        "s3:PutBucketObjectLockConfiguration",
-        "s3:GetBucketOwnershipControls",
-        "s3:PutBucketOwnershipControls",
-        "s3:GetBucketPolicy",
-        "s3:PutBucketPolicy",
-        "s3:DeleteBucketPolicy",
-        "s3:GetBucketPublicAccessBlock",
-        "s3:PutBucketPublicAccessBlock",
-        "s3:GetBucketRequestPayment",
-        "s3:PutBucketRequestPayment",
-        "s3:GetBucketTagging",
-        "s3:PutBucketTagging",
-        "s3:GetBucketVersioning",
-        "s3:PutBucketVersioning",
-        "s3:GetBucketWebsite",
-        "s3:PutBucketWebsite",
-        "s3:GetEncryptionConfiguration",
-        "s3:PutEncryptionConfiguration",
-        "s3:GetLifecycleConfiguration",
-        "s3:PutLifecycleConfiguration",
-        "s3:GetReplicationConfiguration",
-        "s3:PutReplicationConfiguration"
-      ],
-      "Resource": [
-        "arn:aws:s3:::eml-soils-db",
-        "arn:aws:s3:::eml-soils-db/*",
-        "arn:aws:s3:::ubc-eml-virtual-soils-*",
-        "arn:aws:s3:::ubc-eml-virtual-soils-*/*"
-      ]
-    },
-    {
-      "Sid": "IAMRolesVirtualSoils",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateRole",
-        "iam:DeleteRole",
-        "iam:GetRole",
-        "iam:UpdateRole",
-        "iam:PutRolePolicy",
-        "iam:GetRolePolicy",
-        "iam:DeleteRolePolicy",
-        "iam:AttachRolePolicy",
-        "iam:DetachRolePolicy",
-        "iam:ListRolePolicies",
-        "iam:ListAttachedRolePolicies",
-        "iam:TagRole",
-        "iam:UntagRole"
-      ],
-      "Resource": "arn:aws:iam::940309384764:role/ubc-eml-virtual-soils-*"
-    },
-    {
-      "Sid": "IAMPassRoleToLambda",
-      "Effect": "Allow",
-      "Action": "iam:PassRole",
-      "Resource": "arn:aws:iam::940309384764:role/ubc-eml-virtual-soils-*",
-      "Condition": {
-        "StringEquals": {
-          "iam:PassedToService": "lambda.amazonaws.com"
-        }
-      }
-    },
-    {
-      "Sid": "AttachLambdaBasicExecution",
-      "Effect": "Allow",
-      "Action": "iam:AttachRolePolicy",
-      "Resource": "arn:aws:iam::940309384764:role/ubc-eml-virtual-soils-*",
-      "Condition": {
-        "ArnEquals": {
-          "iam:PolicyARN": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-        }
-      }
-    },
-    {
-      "Sid": "IAMOptionalApiInvokerUser",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateUser",
-        "iam:DeleteUser",
-        "iam:GetUser",
-        "iam:PutUserPolicy",
-        "iam:DeleteUserPolicy",
-        "iam:CreateAccessKey",
-        "iam:DeleteAccessKey",
-        "iam:ListAccessKeys",
-        "iam:TagUser",
-        "iam:UntagUser"
-      ],
-      "Resource": "arn:aws:iam::940309384764:user/ubc-eml-virtual-soils-*"
-    }
+  "Sid": "CloudFrontVirtualSoils",
+  "Effect": "Allow",
+  "Action": [
+    "cloudfront:CreateDistribution",
+    "cloudfront:UpdateDistribution",
+    "cloudfront:DeleteDistribution",
+    "cloudfront:GetDistribution",
+    "cloudfront:GetDistributionConfig",
+    "cloudfront:CreateOriginAccessControl",
+    "cloudfront:UpdateOriginAccessControl",
+    "cloudfront:DeleteOriginAccessControl",
+    "cloudfront:GetOriginAccessControl",
+    "cloudfront:TagResource",
+    "cloudfront:UntagResource",
+    "cloudfront:ListTagsForResource"
+  ],
+  "Resource": [
+    "arn:aws:cloudfront::940309384764:distribution/*",
+    "arn:aws:cloudfront::940309384764:origin-access-control/*"
   ]
+},
+{
+  "Sid": "CloudFrontListAccount",
+  "Effect": "Allow",
+  "Action": [
+    "cloudfront:ListDistributions",
+    "cloudfront:ListOriginAccessControls",
+    "cloudfront:ListTagsForResource"
+  ],
+  "Resource": "*"
 }
 ```
+
+Site buckets (`ubc-eml-virtual-soils-prod-site-*`) are already covered by the existing **`S3VirtualSoils`** wildcard (`arn:aws:s3:::ubc-eml-virtual-soils-*`).
+
+**Full policy:** open [`docs/iam/hcp-terraform-virtual-soils-policy.json`](./iam/hcp-terraform-virtual-soils-policy.json) and paste the entire file into the IAM console.
 
 ### Policy notes
 
 - **`iam:PassRole`** uses a `lambda.amazonaws.com` condition; **`iam:CreateRole`** does not (CreateRole failed when PassRole was the only IAM grant).
 - **`logs:DescribeLogGroups`** and **`cognito-idp:DescribeUserPoolDomain`** use `Resource: *` because AWS evaluates those APIs at account/global scope.
-- **`eml-soils-db`** remains in the S3 ARNs for optional import; production backups should use the generated `ubc-eml-virtual-soils-prod-assets-*` bucket.
-- This policy is for **Terraform runs only**. The **Lambda execution role** (DynamoDB access) is created separately by Terraform and is not the `HCPTerraform` role.
+- **`CloudFrontListAccount`** uses `Resource: *` for list/describe APIs (same pattern as CloudWatch Logs).
+- **`eml-soils-db`** remains in the S3 ARNs for optional import; production backups should use the generated `ubc-eml-virtual-soils-prod-assets-*` bucket; site buckets use `ubc-eml-virtual-soils-prod-site-*`.
+- This policy is for **Terraform runs only**. App deploy CI uses a **separate, narrower role** — see [`github-deploy-virtual-soils-policy.json`](./iam/github-deploy-virtual-soils-policy.json).
+- The **Lambda execution role** (DynamoDB access) is created separately by Terraform and is not the `HCPTerraform` role.
 
 ---
 
@@ -418,4 +242,4 @@ Attach this as a **customer managed policy** or **inline policy** on IAM role **
 
 | Date | Notes |
 |------|--------|
-| 2026-05-28 | Initial runbook after first successful Virtual Soils apply in account `940309384764`, HCP org `EML`. |
+| 2026-05-28 | Added CloudFront IAM for `module.site`; policy file at `docs/iam/hcp-terraform-virtual-soils-policy.json`. |
