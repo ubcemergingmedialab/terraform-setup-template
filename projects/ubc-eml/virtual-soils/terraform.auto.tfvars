@@ -12,7 +12,7 @@ tags = {
 # Set when importing existing AWS resources created before Terraform.
 # After import, keep these values so Terraform does not rename resources.
 legacy_dynamodb_table_name = "eml_fields"
-legacy_assets_bucket_name  = "eml-soils-db"
+legacy_assets_bucket_name  = ""
 
 # Match Cognito app client settings (add Amplify preview URLs as needed).
 cognito_callback_urls = [
