@@ -28,6 +28,10 @@ desktop.ini
 # Local logs
 *.log
 
+# Lambda deployment packages (built on HCP / CI)
+**/lambda/node_modules/
+modules/lambda-http-api/.build/
+
 # Planning files used during active work are committed; uncomment if you'd rather not
 # task_plan.md
 # findings.md
