@@ -111,7 +111,7 @@ terraform {
   required_version = ">= 1.6"
 
   cloud {
-    organization = "lab-emerging-media"        # ← changes on transplant
+    organization = "EML"                         # ← changes on transplant
     workspaces {
       name = "ubc-arts-splat-museum"           # ← matches HCP workspace name
     }

@@ -1,17 +1,56 @@
-# TODO: GitHub Actions workflow.
-# Triggers: pull_request, push to main.
-# Steps:
-#   - actions/checkout
-#   - hashicorp/setup-terraform
-#   - terraform fmt -check -recursive
-#   - terraform validate (per module + per project root)
-#   - terraform-linters/setup-tflint + tflint
-# No apply step — HCP Terraform owns apply.
-
 name: terraform-checks
-on: [pull_request]
+
+on:
+  pull_request:
+    paths:
+      - "modules/**"
+      - "projects/**"
+      - ".github/workflows/terraform-checks.yml"
+  push:
+    branches: [main]
+    paths:
+      - "modules/**"
+      - "projects/**"
+
 jobs:
   checks:
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo "placeholder — implement when modules have real content"
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Virtual Soils Lambda dependencies
+        working-directory: projects/ubc-eml/virtual-soils/lambda
+        run: npm ci
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform validate (modules)
+        run: |
+          for dir in modules/*/; do
+            echo "==> $dir"
+            (cd "$dir" && terraform init -backend=false && terraform validate)
+          done
+
+      - name: Terraform init (virtual-soils)
+        working-directory: projects/ubc-eml/virtual-soils
+        run: terraform init -backend=false
+
+      - name: Terraform validate (virtual-soils)
+        working-directory: projects/ubc-eml/virtual-soils
+        run: terraform validate
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: TFLint
+        run: tflint --init && tflint --recursive

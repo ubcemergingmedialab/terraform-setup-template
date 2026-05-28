@@ -5,8 +5,7 @@ terraform {
     organization = "EML"
 
     workspaces {
-      # Set to match the HCP workspace name, e.g. "<client_name>-<project_name>"
-      name = "REPLACE-WITH-WORKSPACE-NAME"
+      name = "ubc-eml-virtual-soils"
     }
   }
 
@@ -14,6 +13,10 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
     }
   }
 }

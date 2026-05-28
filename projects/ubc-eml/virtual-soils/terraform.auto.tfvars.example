@@ -1,0 +1,22 @@
+# Copy to terraform.auto.tfvars and adjust. No secrets here.
+
+client_name  = "ubc-eml"
+project_name = "virtual-soils"
+environment  = "dev"
+aws_region   = "ca-central-1"
+
+tags = {
+  Owner = "emerging-media-lab"
+}
+
+legacy_dynamodb_table_name = ""
+legacy_assets_bucket_name  = ""
+
+cognito_callback_urls = ["http://localhost:5173/admin"]
+cognito_logout_urls     = ["http://localhost:5173/"]
+
+cors_allow_origins = ["http://localhost:5173"]
+
+pins_field_ids           = "TestA,TestB,TestC"
+create_iam_api_invoker   = false
+enable_assets_bucket     = true
