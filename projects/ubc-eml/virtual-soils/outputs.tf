@@ -29,8 +29,28 @@ output "cognito_hosted_ui_domain" {
 }
 
 output "assets_bucket_name" {
-  description = "S3 bucket for splat/assets (if enabled)."
+  description = "S3 bucket for splat/assets and DB backups (if enabled)."
   value       = var.enable_assets_bucket ? module.assets[0].bucket_name : null
+}
+
+output "site_url" {
+  description = "Public HTTPS URL for the frontend (CloudFront). Use for Cognito callback/logout URLs after first apply."
+  value       = var.enable_static_site ? module.site[0].site_url : null
+}
+
+output "site_bucket_name" {
+  description = "S3 bucket for frontend deploy (aws s3 sync dist/)."
+  value       = var.enable_static_site ? module.site[0].bucket_name : null
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID for cache invalidation after deploy."
+  value       = var.enable_static_site ? module.site[0].cloudfront_distribution_id : null
+}
+
+output "cloudfront_domain" {
+  description = "CloudFront hostname (no https://)."
+  value       = var.enable_static_site ? module.site[0].cloudfront_domain : null
 }
 
 output "lambda_log_group" {

@@ -41,7 +41,7 @@ variable "legacy_assets_bucket_name" {
 
 variable "cognito_callback_urls" {
   type        = list(string)
-  description = "OAuth callback URLs (local dev + Amplify/production)."
+  description = "OAuth callback URLs (local dev + CloudFront/custom domain)."
 }
 
 variable "cognito_logout_urls" {
@@ -75,6 +75,12 @@ variable "create_iam_api_invoker" {
 
 variable "enable_assets_bucket" {
   type        = bool
-  description = "Create (or import) S3 bucket for splat/assets storage."
+  description = "Create (or import) S3 bucket for splat/assets storage and DB backups."
+  default     = true
+}
+
+variable "enable_static_site" {
+  type        = bool
+  description = "Create S3 + CloudFront for the Vite/React frontend (replaces Amplify hosting)."
   default     = true
 }
