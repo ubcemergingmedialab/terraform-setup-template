@@ -17,12 +17,12 @@ legacy_assets_bucket_name  = ""
 # Match Cognito app client settings (add Amplify preview URLs as needed).
 cognito_callback_urls = [
   "http://localhost:5173/admin",
-  "https://main.d18omgvnlk8eo.amplifyapp.com/admin",
+  "https://d2npz8tam2i8fl.cloudfront.net",
 ]
 
 cognito_logout_urls = [
   "http://localhost:5173/",
-  "https://main.d18omgvnlk8eo.amplifyapp.com/",
+  "https://d2npz8tam2i8fl.cloudfront.net",
 ]
 
 # Existing pool uses domain prefix derived from pool id (see auth.ts). Set only when importing.
@@ -30,7 +30,7 @@ cognito_logout_urls = [
 
 cors_allow_origins = [
   "http://localhost:5173",
-  "https://main.d18omgvnlk8eo.amplifyapp.com",
+  "https://d2npz8tam2i8fl.cloudfront.net",
 ]
 
 pins_field_ids = "TestA,TestB,TestC"
