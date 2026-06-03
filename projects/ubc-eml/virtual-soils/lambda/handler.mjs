@@ -9,10 +9,16 @@ import {
 
 const region = process.env.AWS_REGION || "ca-central-1";
 const TABLE = process.env.FIELDS_TABLE_NAME || "eml_fields";
-const pinsFilterIds = (process.env.PINS_FIELD_IDS || "TestA,TestB,TestC")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+
+/** Empty / "*" = all fields; otherwise comma-separated FieldID allowlist. */
+function parsePinsFilterIds(raw) {
+  if (raw === undefined || raw === null) return [];
+  const trimmed = String(raw).trim();
+  if (trimmed === "" || trimmed === "*") return [];
+  return trimmed.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const pinsFilterIds = parsePinsFilterIds(process.env.PINS_FIELD_IDS);
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region }));
 
