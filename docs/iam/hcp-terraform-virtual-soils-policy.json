@@ -126,7 +126,11 @@
       "Action": [
         "cloudfront:ListDistributions",
         "cloudfront:ListOriginAccessControls",
-        "cloudfront:ListTagsForResource"
+        "cloudfront:ListTagsForResource",
+        "cloudfront:ListCachePolicies",
+        "cloudfront:GetCachePolicy",
+        "cloudfront:ListOriginRequestPolicies",
+        "cloudfront:GetOriginRequestPolicy"
       ],
       "Resource": "*"
     },
