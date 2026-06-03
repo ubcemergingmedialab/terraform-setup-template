@@ -33,6 +33,21 @@ output "assets_bucket_name" {
   value       = var.enable_assets_bucket ? module.assets[0].bucket_name : null
 }
 
+output "assets_cdn_url" {
+  description = "CloudFront base URL for splats — use in DynamoDB File/Thumbnail (e.g. {url}/splats/name.ksplat)."
+  value       = var.enable_assets_bucket && var.enable_assets_cdn ? module.assets[0].cdn_url : null
+}
+
+output "assets_cloudfront_distribution_id" {
+  description = "Assets CloudFront distribution ID (invalidation after bulk metadata changes)."
+  value       = var.enable_assets_bucket && var.enable_assets_cdn ? module.assets[0].cloudfront_distribution_id : null
+}
+
+output "assets_cloudfront_domain" {
+  description = "Assets CloudFront hostname (no https://)."
+  value       = var.enable_assets_bucket && var.enable_assets_cdn ? module.assets[0].cloudfront_domain : null
+}
+
 output "site_url" {
   description = "Public HTTPS URL for the frontend (CloudFront). Use for Cognito callback/logout URLs after first apply."
   value       = var.enable_static_site ? module.site[0].site_url : null

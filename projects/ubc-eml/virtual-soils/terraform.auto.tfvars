@@ -42,5 +42,7 @@ pins_field_ids = "*"
 # Prefer Cognito-only admin + public /pins without browser IAM keys when possible.
 create_iam_api_invoker = false
 
-enable_assets_bucket = true
-enable_static_site   = true
+enable_assets_bucket       = true
+enable_assets_cdn          = true
+assets_enable_public_read  = true
+enable_static_site         = true

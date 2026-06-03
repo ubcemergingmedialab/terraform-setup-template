@@ -79,6 +79,18 @@ variable "enable_assets_bucket" {
   default     = true
 }
 
+variable "enable_assets_cdn" {
+  type        = bool
+  description = "CloudFront CDN in front of the assets bucket (recommended for splat caching and Range requests)."
+  default     = true
+}
+
+variable "assets_enable_public_read" {
+  type        = bool
+  description = "Allow direct S3 object URLs (public GetObject). Set false after DynamoDB URLs use assets_cdn_url."
+  default     = true
+}
+
 variable "enable_static_site" {
   type        = bool
   description = "Create S3 + CloudFront for the Vite/React frontend (replaces Amplify hosting)."

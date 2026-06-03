@@ -6,10 +6,23 @@ resource "random_id" "bucket_suffix" {
 
 locals {
   bucket_name = var.legacy_bucket_name != "" ? var.legacy_bucket_name : "${var.name_prefix}-${var.bucket_name_suffix}-${random_id.bucket_suffix[0].hex}"
+  origin_id   = "S3-${local.bucket_name}"
+  # AWS managed CachingOptimized — supports Range requests for progressive .ksplat loads
+  cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  # Forward Origin (CORS) and Range to S3 origin
+  origin_request_policy_id = "88a5eaf4-2fd4-4709-b370-b5566785506"
 }
 
 resource "aws_s3_bucket" "this" {
   bucket = local.bucket_name
+}
+
+resource "aws_s3_bucket_ownership_controls" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
 }
 
 resource "aws_s3_bucket_versioning" "this" {
@@ -34,34 +47,9 @@ resource "aws_s3_bucket_public_access_block" "this" {
   bucket = aws_s3_bucket.this.id
 
   block_public_acls       = true
-  block_public_policy     = !var.enable_public_read
+  block_public_policy     = !(var.enable_public_read || var.enable_cdn)
   ignore_public_acls      = true
-  restrict_public_buckets = !var.enable_public_read
-}
-
-data "aws_iam_policy_document" "public_read" {
-  count = var.enable_public_read ? 1 : 0
-
-  statement {
-    sid    = "PublicReadGetObject"
-    effect = "Allow"
-
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
-
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.this.arn}/*"]
-  }
-}
-
-resource "aws_s3_bucket_policy" "public_read" {
-  count  = var.enable_public_read ? 1 : 0
-  bucket = aws_s3_bucket.this.id
-  policy = data.aws_iam_policy_document.public_read[0].json
-
-  depends_on = [aws_s3_bucket_public_access_block.this]
+  restrict_public_buckets = !(var.enable_public_read || var.enable_cdn)
 }
 
 resource "aws_s3_bucket_cors_configuration" "this" {
@@ -71,7 +59,103 @@ resource "aws_s3_bucket_cors_configuration" "this" {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD"]
     allowed_origins = var.cors_allowed_origins
-    expose_headers  = ["ETag"]
+    expose_headers  = ["ETag", "Content-Length", "Content-Range", "Accept-Ranges"]
     max_age_seconds = 3600
   }
+}
+
+resource "aws_cloudfront_origin_access_control" "this" {
+  count = var.enable_cdn ? 1 : 0
+
+  name                              = "${var.name_prefix}-assets-oac"
+  description                       = "OAC for ${var.name_prefix} assets bucket"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_cloudfront_distribution" "this" {
+  count = var.enable_cdn ? 1 : 0
+
+  enabled         = true
+  is_ipv6_enabled = true
+  price_class     = var.price_class
+  comment         = "${var.name_prefix} assets CDN (splats)"
+
+  origin {
+    domain_name              = aws_s3_bucket.this.bucket_regional_domain_name
+    origin_id                = local.origin_id
+    origin_access_control_id = aws_cloudfront_origin_access_control.this[0].id
+  }
+
+  default_cache_behavior {
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    target_origin_id           = local.origin_id
+    viewer_protocol_policy     = "redirect-to-https"
+    compress                   = true
+    cache_policy_id            = local.cache_policy_id
+    origin_request_policy_id   = local.origin_request_policy_id
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+
+data "aws_iam_policy_document" "bucket" {
+  dynamic "statement" {
+    for_each = var.enable_public_read ? [1] : []
+
+    content {
+      sid    = "PublicReadGetObject"
+      effect = "Allow"
+
+      principals {
+        type        = "*"
+        identifiers = ["*"]
+      }
+
+      actions   = ["s3:GetObject"]
+      resources = ["${aws_s3_bucket.this.arn}/*"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.enable_cdn ? [1] : []
+
+    content {
+      sid    = "AllowCloudFrontRead"
+      effect = "Allow"
+
+      principals {
+        type        = "Service"
+        identifiers = ["cloudfront.amazonaws.com"]
+      }
+
+      actions   = ["s3:GetObject"]
+      resources = ["${aws_s3_bucket.this.arn}/*"]
+
+      condition {
+        test     = "StringEquals"
+        variable = "AWS:SourceArn"
+        values   = [aws_cloudfront_distribution.this[0].arn]
+      }
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "this" {
+  count = (var.enable_public_read || var.enable_cdn) ? 1 : 0
+
+  bucket = aws_s3_bucket.this.id
+  policy = data.aws_iam_policy_document.bucket.json
+
+  depends_on = [aws_s3_bucket_public_access_block.this]
 }

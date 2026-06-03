@@ -61,6 +61,8 @@ module "assets" {
   name_prefix          = local.name_prefix
   legacy_bucket_name   = var.legacy_assets_bucket_name
   cors_allowed_origins = var.cors_allow_origins
+  enable_cdn           = var.enable_assets_cdn
+  enable_public_read   = var.assets_enable_public_read
 }
 
 data "aws_caller_identity" "current" {}
