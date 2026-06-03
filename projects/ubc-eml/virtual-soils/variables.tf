@@ -63,8 +63,8 @@ variable "cors_allow_origins" {
 
 variable "pins_field_ids" {
   type        = string
-  description = "Comma-separated FieldID values returned by GET /pins."
-  default     = "TestA,TestB,TestC"
+  description = "FieldIDs returned by GET /pins. Use \"*\" (default) for all rows, or comma-separated IDs (e.g. \"SiteA,SiteB\")."
+  default     = "*"
 }
 
 variable "create_iam_api_invoker" {
