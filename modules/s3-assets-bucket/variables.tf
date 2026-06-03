@@ -26,3 +26,9 @@ variable "enable_versioning" {
   description = "Enable S3 versioning."
   default     = true
 }
+
+variable "enable_public_read" {
+  type        = bool
+  description = "Allow anonymous s3:GetObject via bucket policy (browser-loaded splats). ACLs remain blocked."
+  default     = true
+}

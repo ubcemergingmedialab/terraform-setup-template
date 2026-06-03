@@ -34,9 +34,34 @@ resource "aws_s3_bucket_public_access_block" "this" {
   bucket = aws_s3_bucket.this.id
 
   block_public_acls       = true
-  block_public_policy     = true
+  block_public_policy     = !var.enable_public_read
   ignore_public_acls      = true
-  restrict_public_buckets = true
+  restrict_public_buckets = !var.enable_public_read
+}
+
+data "aws_iam_policy_document" "public_read" {
+  count = var.enable_public_read ? 1 : 0
+
+  statement {
+    sid    = "PublicReadGetObject"
+    effect = "Allow"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.this.arn}/*"]
+  }
+}
+
+resource "aws_s3_bucket_policy" "public_read" {
+  count  = var.enable_public_read ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+  policy = data.aws_iam_policy_document.public_read[0].json
+
+  depends_on = [aws_s3_bucket_public_access_block.this]
 }
 
 resource "aws_s3_bucket_cors_configuration" "this" {
