@@ -33,7 +33,7 @@ cors_allow_origins = [
   "https://d2npz8tam2i8fl.cloudfront.net",
 ]
 
-pins_field_ids = "TestA,TestB,TestC"
+pins_field_ids = "*"
 
 # Prefer Cognito-only admin + public /pins without browser IAM keys when possible.
 create_iam_api_invoker = false

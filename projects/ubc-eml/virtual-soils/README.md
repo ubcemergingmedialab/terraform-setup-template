@@ -50,4 +50,5 @@ cd projects/ubc-eml/virtual-soils/lambda && npm ci
 
 - **[Deployment runbook (IAM, debugging, lessons)](../../docs/virtual-soils-hcp-deployment.md)**
 - **[HCPTerraform IAM policy (JSON)](../../docs/iam/hcp-terraform-virtual-soils-policy.json)** — update before applying `module.site`
-- [Importing existing resources](../../docs/virtual-soils-import-existing.md)
+- [Importing existing resources + DynamoDB backup zip workflow](../../docs/virtual-soils-import-existing.md)
+- [Portable DynamoDB export/import scripts](../scripts/dynamodb-backup/)

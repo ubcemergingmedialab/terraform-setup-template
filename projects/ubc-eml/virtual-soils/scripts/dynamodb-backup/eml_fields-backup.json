@@ -1,0 +1,406 @@
+{
+  "format": "virtual-soils-dynamodb-backup-v1",
+  "tableName": "eml_fields",
+  "region": "ca-central-1",
+  "exportedAt": "2026-06-03T16:46:34.584Z",
+  "itemCount": 6,
+  "hashKey": "FieldID",
+  "items": [
+    {
+      "FieldID": "AW_3",
+      "File": "https://virtualsoils.ca/cdn/radiance-fields/UBC_TotemField_2025/UBC_TotemField.ksplat",
+      "Thumbnail": "https://virtualsoils.ca/cdn/radiance-fields/UBC_TotemField_2025/Thumb_UBC_TotemField_2025_High.jpg",
+      "start_pos": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "ThumbnailAlt": "",
+      "Longitude": -123.250501,
+      "Latitude": 49.256611,
+      "Description": "This soil is located on a grassy field at the Totem Field research site at UBC. While the field has been under agricultural management which included tillage, it is currently only covered in grass which is ocassionally mown. <br><br> While opening the soil pit several highly compacted layers were encountered with very few coarse fragments in the otherwise sandy soil. <br><br> The radiance field was captured using the working standard procedure for capturing soils shortly after a rainfall while the sun was obscured by clouds. The marking flags indicate the location where photos were taken as part of developing the standard procedure.",
+      "OwnerSub": "0c4d0588-4061-706d-a22e-b059bf1d7ba0",
+      "Name": "UBC Totem Field",
+      "markers": [
+        [
+          "/assets/icons/markerIcon1.png",
+          0.05,
+          [
+            0.04486173023154806,
+            0.59913746013911,
+            -0.3100052350762511
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "This horizon was observed to be extremely compact, and has a sharp boundary with the below horizon? Q1: What led to the formation of the sharp boundary? Q2: What is this formation in soil called?"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.05,
+          [
+            -0.15825988386566253,
+            0.25252614550832786,
+            -0.05778203792066372
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "There are bright orange, and pale blueish-gray spots in this soil. Q3: What processes lead to the formation of these colours? Q4: What are these bright spots in soils called?"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.05,
+          [
+            -0.17009902528277548,
+            1.175070855069676,
+            -1.1318065513896944
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "New marker"
+          ]
+        ]
+      ]
+    },
+    {
+      "FieldID": "UM_05",
+      "File": "https://virtualsoils.ca/cdn/radiance-fields/UM_ResearchStation_05/UM_05_WeatherStation.ksplat",
+      "Thumbnail": "https:///virtualsoils.ca/cdn/radiance-fields/UM_ResearchStation_05/Thumb_UM_ResearchStation_05_High.jpg",
+      "start_pos": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "ThumbnailAlt": "",
+      "Longitude": -98.0299,
+      "Latitude": 49.498,
+      "Description": "This soil is located adjacent to the weather station at the University of Manitoba Research Station.<br><br>Within the model the region indicated with a red triangle displays slickenslide surfaces, and the region indicated with a red rectangle was used as part of the 2025 Canadian Society of Soil Science's Annual Meeting's soil judging competition.<br><br>A huge thank you to _names_ for the opportunity to capture these soils!",
+      "OwnerSub": "0c4d0588-4061-706d-a22e-b059bf1d7ba0",
+      "Name": "University of Manitoba | Weather Station",
+      "markers": [
+        [
+          "/assets/icons/markerIcon1.png",
+          0.1,
+          [
+            -2.2693305168151023,
+            1.0987274395023978,
+            -0.03374310191248196
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Horizon Boundaries"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.1,
+          [
+            0.2844031691614388,
+            0.8183266254220558,
+            -0.6747135897086747
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Cracking in the soil"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.1,
+          [
+            -1.4633084287206268,
+            0.5538094851758635,
+            0.7213301814739416
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Aggrilopedoturbation"
+          ]
+        ]
+      ]
+    },
+    {
+      "FieldID": "AW2",
+      "File": "https://eml-soils-assets.s3.ca-central-1.amazonaws.com/splats/UBC_Farm_Agricultural.splat",
+      "Thumbnail": "https://eml-soils-assets.s3.ca-central-1.amazonaws.com/thumbnails/lemon.jpg",
+      "start_pos": {
+        "x": 0.12,
+        "y": -0.52,
+        "z": 0.13
+      },
+      "ThumbnailAlt": "A screenshot of the UBC Farm Agricultural Fields radiance field.",
+      "Longitude": -123.23708,
+      "Latitude": 49.2595,
+      "Description": "This is the soil pit adjacent to the agricultural fields on the UBC Farm. It is used both for research, and for teaching in courses like APBI 200!",
+      "OwnerSub": "acadc548-80c1-70ef-1733-e6e497122d56",
+      "Name": "UBC Farm Agricultural Fields 2",
+      "markers": [
+        [
+          "/assets/icons/markerIcon2.png",
+          0.1,
+          [
+            -0.22756175784280797,
+            -0.7291228829249867,
+            -0.14878366278554223
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+          ]
+        ]
+      ]
+    },
+    {
+      "FieldID": "StsAiles_001",
+      "File": "https://virtualsoils.ca/cdn/radiance-fields/StsAIiles_PhilipsArm/StsAiles_PhilipsArm.ksplat",
+      "Thumbnail": "",
+      "start_pos": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "ThumbnailAlt": "",
+      "Longitude": -121.91401,
+      "Latitude": 49.29835,
+      "Description": "The soil in the Philips Arm Forest Garden is on the territory of the Sts’ailes First Nation. This site was historically used to grow essential foods such as crab apples near to ancient home sites. Archaeological characterization of the site was done by Ritchie et al. (2022, 2024) and Vanier (2022). Characterization of the soils was done by Ahmed (2025).\n\nIn recent years, the Philips Arm Forest Garden was cleared by Sts’ailes guardians, and the site has been used to host weddings, field schools, and more to reconnect with the landscape, and traditional practices.\n\nLearn more about Sts’ailes First Nation at: https://www.stsailes.com/",
+      "OwnerSub": "0c4d0588-4061-706d-a22e-b059bf1d7ba0",
+      "Name": "Sts'Ailes Territory | Philips Arm Forest Garden",
+      "markers": [
+        [
+          "/assets/icons/markerIcon1.png",
+          0.1,
+          [
+            18.809339731927707,
+            2.1176074459848695,
+            0.8246254970090853
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Marium Ahmed (The scientist who characterized these soils) recording audio for the Virtual Soils experience!"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.1,
+          [
+            11.249441505723036,
+            1.2029752184193292,
+            3.348286646660706
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "This depresion has been identified by Sts'ailes leadership as a location where a winter pit home was located!"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.1,
+          [
+            3.153031393446084,
+            1.8731428938714285,
+            2.8278342585120697
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Crab apple trees were historically a culturally important food source for the Sts'ailes First Nation, and many other First Nations across the Pacific Northwest"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.03,
+          [
+            -0.15,
+            0.75,
+            -0.02
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Signs of anthropogenic activity in forest garden soils include: fire cracked rocks, and fragments of charcoal. These pieces were found in the soil pit."
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.03,
+          [
+            -0.8,
+            0.65,
+            -0.06
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Q1: What does the dark brown/blackish colour of this soil indicate may be in significant quantities?"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.03,
+          [
+            -0.81,
+            0.34,
+            -0.15
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            "Title",
+            "Q2: What does the blueish-grey and orange colour indicate may be present in this soil? Hint: think of moving water!"
+          ]
+        ]
+      ]
+    },
+    {
+      "FieldID": "UM_01",
+      "File": "https://eml-soils-assets.s3.ca-central-1.amazonaws.com/splats/UM_ResearchStation_01_WebHigh.ksplat",
+      "Thumbnail": "https://eml-soils-assets.s3.ca-central-1.amazonaws.com/thumbnails/lemon.jpg",
+      "start_pos": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "ThumbnailAlt": "",
+      "Longitude": -98.035667,
+      "Latitude": 49.493929,
+      "Description": "",
+      "OwnerSub": "acadc548-80c1-70ef-1733-e6e497122d56",
+      "Name": "Badger",
+      "markers": [
+        [
+          "/assets/icons/markerIcon2.png",
+          0.1,
+          [
+            0,
+            2.5,
+            4
+          ],
+          [
+            0.67,
+            2.66,
+            3.48
+          ],
+          [
+            "Title",
+            "New marker"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon1.png",
+          0.1,
+          [
+            1.6892580471504912,
+            2.440651738699063,
+            5.594583097260074
+          ],
+          [
+            1.66,
+            2.42,
+            6.41
+          ],
+          [
+            "Title",
+            "New marker"
+          ]
+        ],
+        [
+          "/assets/icons/markerIcon3.png",
+          0.1,
+          [
+            3.631603148845584,
+            1.9906773758767737,
+            1.5965229904319052
+          ],
+          [
+            2.4003239092454693,
+            2.3093686759197105,
+            3.863443003345372
+          ],
+          [
+            "Test 1 ",
+            "Testing 1"
+          ]
+        ]
+      ]
+    },
+    {
+      "FieldID": "AW1",
+      "Thumbnail": "https://eml-soils-assets.s3.ca-central-1.amazonaws.com/thumbnails/lemon.jpg",
+      "File": "https://eml-soils-assets.s3.ca-central-1.amazonaws.com/splats/UBC_Farm_Agricultural.splat",
+      "start_pos": [
+        0,
+        0,
+        0
+      ],
+      "LocationName": "UBC Farm",
+      "ThumbnailAlt": "A screenshot of the UBC Farm Agricultural Fields radiance field.",
+      "Longitude": -123.23708,
+      "Latitude": 49.2495,
+      "SoilProperties": "{'Order': 'Podzol', 'Series': 'Bose', 'Horizons': ['Ap', 'Bf1', 'Bf2', 'Cg']}",
+      "Description": "This is the soil pit adjacent to the agricultural fields on the UBC Farm. It is used both for research, and for teaching in courses like APBI 200!",
+      "Metadata": "{'CapturedBy': 'Amy Wells', 'CaptureDate': '2025', 'ColourCorrection': 'False', 'CaptureDevice': '<a href=\"https://www.sony.ca/en/interchangeable-lens-cameras/products/zv-e10\" target=\"_blank\">Sony Alpha ZV-E10</a> with <a href=\"https://www.sony.ca/en/lenses/products/selp1020g\" target=\"_blank\">Sony E PZ 10-20mm F4 G</a>'}",
+      "Name": "UBC Farm Agricultural Fields"
+    }
+  ]
+}
