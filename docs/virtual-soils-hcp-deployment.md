@@ -149,6 +149,24 @@ No sensitive Terraform *input* variables are required for Virtual Soils (Cognito
 
 ---
 
+### 8. DynamoDB — Terraform import vs data migration
+
+**Issue:** “Import DynamoDB” is ambiguous. **Terraform import** only registers the table in state; it does **not** copy rows. A separate **data migration** step is needed when the table is new, empty, or in another account.
+
+**Issue:** AWS **Export to S3** to an external bucket requires knowing the **destination account ID**, bucket name, and bucket policy — awkward for lab handoffs.
+
+**Resolution paths:**
+
+| Goal | What to do |
+|------|------------|
+| Same account, keep `eml_fields` + existing rows | `terraform import 'module.fields_table.aws_dynamodb_table.this' eml_fields` only — [import doc](./virtual-soils-import-existing.md#dynamodb-terraform-import-keep-eml_fields--keep-data) |
+| Hand someone a backup (zip) | Scripts: [`scripts/dynamodb-backup/`](../projects/ubc-eml/virtual-soils/scripts/dynamodb-backup/) — export JSON → zip → import on target |
+| Large / automated backup in AWS | Export to HCP output **`assets_bucket_name`** (same account), then optional Import from S3 |
+
+Full detail: **[`virtual-soils-import-existing.md`](./virtual-soils-import-existing.md)** (DynamoDB sections).
+
+---
+
 ## After successful apply
 
 1. **HCP outputs** → frontend build (Amplify today, GitHub Actions + CloudFront after cutover):
@@ -233,8 +251,8 @@ Site buckets (`ubc-eml-virtual-soils-prod-site-*`) are already covered by the ex
 1. Start with a **scoped** policy, but expect **describe/get/tag** gaps—plan for 2–3 apply iterations.
 2. Keep the **full policy in git** (this doc) so console edits are recoverable.
 3. **Never assume** a legacy bucket name from old exports exists in the current account—verify or use generated names.
-4. **Import** pre-existing resources before apply when using `legacy_*` names.
-5. Separate **HCP credentials** (infra) from **Amplify env vars** (app).
+4. **Import** pre-existing **resources** with `terraform import` when using `legacy_*` names; **migrate row data** separately if the table is new or empty (zip scripts or same-account S3 export).
+5. Separate **HCP credentials** (infra) from **app build env vars** (`VITE_*`).
 
 ---
 
@@ -242,4 +260,5 @@ Site buckets (`ubc-eml-virtual-soils-prod-site-*`) are already covered by the ex
 
 | Date | Notes |
 |------|--------|
+| 2026-05-28 | DynamoDB import vs zip backup workflow; scripts at `scripts/dynamodb-backup/`. |
 | 2026-05-28 | Added CloudFront IAM for `module.site`; policy file at `docs/iam/hcp-terraform-virtual-soils-policy.json`. |
