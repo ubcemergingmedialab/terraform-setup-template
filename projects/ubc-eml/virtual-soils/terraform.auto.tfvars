@@ -18,6 +18,7 @@ legacy_assets_bucket_name  = "ubc-eml-virtual-soils-prod-assets-078d04"
 # Match Cognito app client settings (add Amplify preview URLs as needed).
 cognito_callback_urls = [
   "http://localhost:5173/admin",
+  "http://localhost:5174/",
   "https://d2npz8tam2i8fl.cloudfront.net",
 ]
 
