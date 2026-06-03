@@ -7,10 +7,16 @@ resource "random_id" "bucket_suffix" {
 locals {
   bucket_name = var.legacy_bucket_name != "" ? var.legacy_bucket_name : "${var.name_prefix}-${var.bucket_name_suffix}-${random_id.bucket_suffix[0].hex}"
   origin_id   = "S3-${local.bucket_name}"
-  # AWS managed CachingOptimized — supports Range requests for progressive .ksplat loads
-  cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
-  # Forward Origin (CORS) and Range to S3 origin
-  origin_request_policy_id = "88a5eaf4-2fd4-4709-b370-b5566785506"
+}
+
+# AWS managed policies — looked up by name to avoid stale/wrong hardcoded IDs.
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
+}
+
+# Forwards Origin (CORS) and Range (progressive .ksplat) to S3.
+data "aws_cloudfront_origin_request_policy" "viewer_except_host" {
+  name = "Managed-AllViewerExceptHostHeader"
 }
 
 resource "aws_s3_bucket" "this" {
@@ -94,8 +100,8 @@ resource "aws_cloudfront_distribution" "this" {
     target_origin_id           = local.origin_id
     viewer_protocol_policy     = "redirect-to-https"
     compress                   = true
-    cache_policy_id            = local.cache_policy_id
-    origin_request_policy_id   = local.origin_request_policy_id
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_optimized.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.viewer_except_host.id
   }
 
   restrictions {
