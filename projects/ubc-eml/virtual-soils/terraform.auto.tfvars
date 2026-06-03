@@ -24,6 +24,7 @@ cognito_callback_urls = [
 
 cognito_logout_urls = [
   "http://localhost:5173/",
+  "http://localhost:5174/",
   "https://d2npz8tam2i8fl.cloudfront.net",
 ]
 
@@ -32,6 +33,7 @@ cognito_logout_urls = [
 
 cors_allow_origins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://d2npz8tam2i8fl.cloudfront.net",
 ]
 
