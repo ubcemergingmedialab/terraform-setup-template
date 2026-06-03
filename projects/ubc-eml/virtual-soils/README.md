@@ -20,7 +20,7 @@ Infrastructure for the [Virtual Soils](https://github.com/) web app (`25---1002-
 | Cognito user pool + OAuth client | `/admin` sign-in |
 | API Gateway HTTP API + Lambda | `GET /pins`, `GET /fields`, admin CRUD on `/admin/api/fields` |
 | **S3 + CloudFront** (`module.site`) | Frontend hosting (Vite build → `dist/`) |
-| S3 assets bucket (optional) | Splats / DynamoDB backup exports |
+| S3 assets bucket + optional CDN (`module.assets`) | Splats / DynamoDB backup exports; **`assets_cdn_url`** for public splat URLs |
 
 ## Frontend deploy (app repo CI, not Terraform)
 
@@ -30,8 +30,11 @@ After apply, use HCP outputs:
 |--------|-----|
 | `site_url` | Public app URL (`https://….cloudfront.net`) |
 | `site_bucket_name` | `aws s3 sync dist/ s3://…` |
-| `cloudfront_distribution_id` | `aws cloudfront create-invalidation …` |
-| `api_endpoint` | `VITE_API_URL` at build time |
+| `cloudfront_distribution_id` | `aws cloudfront create-invalidation …` (viewer site) |
+| `assets_cdn_url` | DynamoDB `File` / `Thumbnail` base URL (`{url}/splats/…`) |
+| `assets_cloudfront_distribution_id` | Invalidate assets CDN after bulk S3 metadata changes |
+| `assets_bucket_name` | Direct S3 upload / DynamoDB export target |
+| `api_endpoint` | `VITE_PUBLIC_API_URL` / `VITE_ADMIN_API_URL` at build time |
 | Cognito outputs | `VITE_COGNITO_*` at build time |
 
 After first apply, add `site_url` callback/logout paths to `cognito_callback_urls` / `cognito_logout_urls` and `cors_allow_origins`, then re-apply.

@@ -28,5 +28,7 @@ cors_allow_origins = [
 
 pins_field_ids           = "*"
 create_iam_api_invoker   = false
-enable_assets_bucket   = true
-enable_static_site     = true
+enable_assets_bucket     = true
+enable_assets_cdn        = true
+assets_enable_public_read = true
+enable_static_site       = true

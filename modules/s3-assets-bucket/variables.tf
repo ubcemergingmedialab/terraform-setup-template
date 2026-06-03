@@ -29,6 +29,18 @@ variable "enable_versioning" {
 
 variable "enable_public_read" {
   type        = bool
-  description = "Allow anonymous s3:GetObject via bucket policy (browser-loaded splats). ACLs remain blocked."
+  description = "Allow anonymous s3:GetObject via bucket policy (direct S3 URLs). Set false when using CDN only."
   default     = true
+}
+
+variable "enable_cdn" {
+  type        = bool
+  description = "CloudFront distribution + OAC in front of the assets bucket (recommended for splats)."
+  default     = false
+}
+
+variable "price_class" {
+  type        = string
+  description = "CloudFront price class when enable_cdn is true (PriceClass_100 = US/CA/EU)."
+  default     = "PriceClass_100"
 }
