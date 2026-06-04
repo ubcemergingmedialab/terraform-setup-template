@@ -18,12 +18,12 @@ legacy_assets_bucket_name  = "ubc-eml-virtual-soils-prod-assets-078d04"
 # Cognito: admin app only (add admin_site_url after first apply with enable_admin_site).
 cognito_callback_urls = [
   "http://localhost:5174/",
-  "https://d1mulmg3y4nxxd.cloudfront.net"
+  "https://d1mulmg3y4nxxd.cloudfront.net/"
 ]
 
 cognito_logout_urls = [
   "http://localhost:5174/",
-  "https://d1mulmg3y4nxxd.cloudfront.net"
+  "https://d1mulmg3y4nxxd.cloudfront.net/"
 ]
 
 # Existing pool uses domain prefix derived from pool id (see auth.ts). Set only when importing.
