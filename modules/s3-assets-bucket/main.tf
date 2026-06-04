@@ -73,6 +73,36 @@ resource "aws_cloudfront_origin_access_control" "this" {
   signing_protocol                  = "sigv4"
 }
 
+resource "aws_cloudfront_response_headers_policy" "cors" {
+  count = var.enable_cdn ? 1 : 0
+
+  name    = "${var.name_prefix}-assets-cors"
+  comment = "Per-request CORS for splats (viewer + admin CloudFront origins)"
+
+  cors_config {
+    access_control_allow_credentials = false
+
+    access_control_allow_headers {
+      items = ["*"]
+    }
+
+    access_control_allow_methods {
+      items = ["GET", "HEAD", "OPTIONS"]
+    }
+
+    access_control_allow_origins {
+      items = var.cors_allowed_origins
+    }
+
+    access_control_expose_headers {
+      items = ["ETag", "Content-Length", "Content-Range", "Accept-Ranges"]
+    }
+
+    access_control_max_age_sec = 3600
+    origin_override            = true
+  }
+}
+
 resource "aws_cloudfront_distribution" "this" {
   count = var.enable_cdn ? 1 : 0
 
@@ -93,8 +123,9 @@ resource "aws_cloudfront_distribution" "this" {
     target_origin_id           = local.origin_id
     viewer_protocol_policy     = "redirect-to-https"
     compress                   = true
-    cache_policy_id          = local.cache_policy_id
-    origin_request_policy_id = local.origin_request_policy_id
+    cache_policy_id            = local.cache_policy_id
+    origin_request_policy_id   = local.origin_request_policy_id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.cors[0].id
   }
 
   restrictions {
