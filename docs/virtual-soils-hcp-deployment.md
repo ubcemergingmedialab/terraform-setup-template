@@ -188,6 +188,21 @@ Attach this as a **customer managed policy** or **inline policy** on IAM role **
 
 **Canonical copy in git:** [`docs/iam/hcp-terraform-virtual-soils-policy.json`](./iam/hcp-terraform-virtual-soils-policy.json) — paste from there if the console loses your edit.
 
+**Policy size limit:** AWS customer managed policies max out at **6144 characters**. The full Virtual Soils policy exceeds that when CloudFront response-headers actions are included. Attach the supplemental **inline** policy on the same role:
+
+- File: [`docs/iam/hcp-terraform-cloudfront-response-headers-inline.json`](./iam/hcp-terraform-cloudfront-response-headers-inline.json)
+- IAM role: `HCPTerraform`
+- Inline policy name: `CloudFrontResponseHeaders`
+
+```bash
+aws iam put-role-policy \
+  --role-name HCPTerraform \
+  --policy-name CloudFrontResponseHeaders \
+  --policy-document file://docs/iam/hcp-terraform-cloudfront-response-headers-inline.json
+```
+
+Required for Terraform `aws_cloudfront_response_headers_policy` on the assets CDN (multi-origin splat CORS).
+
 **Trust policy** (OIDC for HCP) is separate—configure via [HashiCorp dynamic credentials](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/dynamic-provider-credentials/aws-configuration), scoped to org `EML` and workspace `ubc-eml-virtual-soils`.
 
 The JSON below matches the file in git (includes **CloudFront** for `module.site`).
@@ -262,3 +277,4 @@ Site buckets (`ubc-eml-virtual-soils-prod-site-*`) are already covered by the ex
 |------|--------|
 | 2026-05-28 | DynamoDB import vs zip backup workflow; scripts at `scripts/dynamodb-backup/`. |
 | 2026-05-28 | Added CloudFront IAM for `module.site`; policy file at `docs/iam/hcp-terraform-virtual-soils-policy.json`. |
+| 2026-06-04 | Assets CDN CORS: `CloudFrontResponseHeaders` inline policy (main policy at 6144-byte limit). |
