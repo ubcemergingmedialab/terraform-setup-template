@@ -20,6 +20,31 @@ function parsePinsFilterIds(raw) {
 
 const pinsFilterIds = parsePinsFilterIds(process.env.PINS_FIELD_IDS);
 
+const corsAllowOrigins = (process.env.CORS_ALLOW_ORIGINS || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+function requestOrigin(event) {
+  const headers = event?.headers ?? {};
+  return headers.origin ?? headers.Origin;
+}
+
+/** Echo the browser Origin when allowed — required for admin + viewer on different CloudFront domains. */
+function corsHeaders(event) {
+  const origin = requestOrigin(event);
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
+  if (origin && corsAllowOrigins.includes(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+    headers.Vary = "Origin";
+  }
+
+  return headers;
+}
+
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region }));
 
 const unwrapAttributeValue = (attr) => {
@@ -170,51 +195,48 @@ export const handler = async (event) => {
 
   try {
     if (method === "GET" && path === "/pins") {
-      return json(200, await getPins());
+      return json(200, await getPins(), event);
     }
 
     if (method === "GET" && path === "/fields") {
-      return json(200, await getFields());
+      return json(200, await getFields(), event);
     }
 
     const fieldMatch = path.match(/^\/fields\/([^/]+)$/);
     if (method === "GET" && fieldMatch) {
       const item = await getFieldById(fieldMatch[1]);
-      return item ? json(200, item) : json(404, { error: "Not found" });
+      return item ? json(200, item, event) : json(404, { error: "Not found" }, event);
     }
 
     if (path === "/admin/api/fields") {
       if (method === "GET") {
-        return json(200, await getFields());
+        return json(200, await getFields(), event);
       }
       if (method === "POST") {
         const body = parseJsonBody(event);
-        return json(201, await createField(body));
+        return json(201, await createField(body), event);
       }
       if (method === "PUT") {
         const body = parseJsonBody(event);
         const result = await updateField(body);
-        return result ? json(200, result) : json(404, { error: "Not found" });
+        return result ? json(200, result, event) : json(404, { error: "Not found" }, event);
       }
       if (method === "DELETE") {
         const body = parseJsonBody(event);
         await deleteField(body?.FieldID);
-        return json(204, null);
+        return json(204, null, event);
       }
     }
 
-    return json(404, { error: "Not found" });
+    return json(404, { error: "Not found" }, event);
   } catch (e) {
     console.error(e);
-    return json(500, { error: "Server error" });
+    return json(500, { error: "Server error" }, event);
   }
 };
 
-const json = (status, body) => ({
+const json = (status, body, event) => ({
   statusCode: status,
-  headers: {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-  },
+  headers: corsHeaders(event),
   body: body === null || body === undefined ? "" : JSON.stringify(body),
 });
