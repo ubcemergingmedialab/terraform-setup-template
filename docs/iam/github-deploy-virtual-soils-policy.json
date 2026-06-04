@@ -13,7 +13,9 @@
       ],
       "Resource": [
         "arn:aws:s3:::ubc-eml-virtual-soils-prod-site-*",
-        "arn:aws:s3:::ubc-eml-virtual-soils-prod-site-*/*"
+        "arn:aws:s3:::ubc-eml-virtual-soils-prod-site-*/*",
+        "arn:aws:s3:::ubc-eml-virtual-soils-prod-admin-*",
+        "arn:aws:s3:::ubc-eml-virtual-soils-prod-admin-*/*"
       ]
     },
     {

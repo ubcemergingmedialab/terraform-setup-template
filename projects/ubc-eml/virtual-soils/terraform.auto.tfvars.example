@@ -31,4 +31,5 @@ create_iam_api_invoker   = false
 enable_assets_bucket     = true
 enable_assets_cdn        = true
 assets_enable_public_read = true
-enable_static_site       = true
+enable_viewer_site     = true
+enable_admin_site      = true
