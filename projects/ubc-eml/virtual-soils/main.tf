@@ -81,11 +81,24 @@ module "api_invoker" {
   allowed_route_arns = [local.pins_invoke_arn]
 }
 
-module "site" {
-  count  = var.enable_static_site ? 1 : 0
+# Viewer app (apps/viewer/dist). Keeps bucket suffix "site" for existing prod bucket/state.
+module "viewer_site" {
+  count  = var.enable_viewer_site ? 1 : 0
   source = "../../../modules/s3-static-site"
 
   name_prefix          = local.name_prefix
+  bucket_name_suffix   = "site"
+  spa_routing          = true
+  cors_allowed_origins = var.cors_allow_origins
+}
+
+# Admin app (apps/admin/dist). Cognito callback/logout URLs should use admin_site_url.
+module "admin_site" {
+  count  = var.enable_admin_site ? 1 : 0
+  source = "../../../modules/s3-static-site"
+
+  name_prefix          = local.name_prefix
+  bucket_name_suffix   = "admin"
   spa_routing          = true
   cors_allowed_origins = var.cors_allow_origins
 }

@@ -91,8 +91,14 @@ variable "assets_enable_public_read" {
   default     = true
 }
 
-variable "enable_static_site" {
+variable "enable_viewer_site" {
   type        = bool
-  description = "Create S3 + CloudFront for the Vite/React frontend (replaces Amplify hosting)."
+  description = "S3 + CloudFront for the public viewer app (apps/viewer). Bucket suffix: site."
+  default     = true
+}
+
+variable "enable_admin_site" {
+  type        = bool
+  description = "S3 + CloudFront for the admin app (apps/admin). Bucket suffix: admin."
   default     = true
 }

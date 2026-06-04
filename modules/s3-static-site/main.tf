@@ -61,8 +61,8 @@ resource "aws_s3_bucket_cors_configuration" "this" {
 }
 
 resource "aws_cloudfront_origin_access_control" "this" {
-  name                              = "${var.name_prefix}-site-oac"
-  description                       = "OAC for ${var.name_prefix} static site"
+  name                              = "${var.name_prefix}-${var.bucket_name_suffix}-oac"
+  description                       = "OAC for ${var.name_prefix} ${var.bucket_name_suffix} site"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -73,7 +73,7 @@ resource "aws_cloudfront_distribution" "this" {
   is_ipv6_enabled     = true
   default_root_object = var.default_root_object
   price_class         = var.price_class
-  comment             = "${var.name_prefix} static site"
+  comment             = "${var.name_prefix} ${var.bucket_name_suffix} site"
 
   origin {
     domain_name              = aws_s3_bucket.this.bucket_regional_domain_name
