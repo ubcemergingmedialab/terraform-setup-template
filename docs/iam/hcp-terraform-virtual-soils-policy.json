@@ -111,13 +111,18 @@
         "cloudfront:UpdateOriginAccessControl",
         "cloudfront:DeleteOriginAccessControl",
         "cloudfront:GetOriginAccessControl",
+        "cloudfront:CreateResponseHeadersPolicy",
+        "cloudfront:UpdateResponseHeadersPolicy",
+        "cloudfront:DeleteResponseHeadersPolicy",
+        "cloudfront:GetResponseHeadersPolicy",
         "cloudfront:TagResource",
         "cloudfront:UntagResource",
         "cloudfront:ListTagsForResource"
       ],
       "Resource": [
         "arn:aws:cloudfront::940309384764:distribution/*",
-        "arn:aws:cloudfront::940309384764:origin-access-control/*"
+        "arn:aws:cloudfront::940309384764:origin-access-control/*",
+        "arn:aws:cloudfront::940309384764:response-headers-policy/*"
       ]
     },
     {
@@ -130,7 +135,9 @@
         "cloudfront:ListCachePolicies",
         "cloudfront:GetCachePolicy",
         "cloudfront:ListOriginRequestPolicies",
-        "cloudfront:GetOriginRequestPolicy"
+        "cloudfront:GetOriginRequestPolicy",
+        "cloudfront:ListResponseHeadersPolicies",
+        "cloudfront:GetResponseHeadersPolicy"
       ],
       "Resource": "*"
     },
