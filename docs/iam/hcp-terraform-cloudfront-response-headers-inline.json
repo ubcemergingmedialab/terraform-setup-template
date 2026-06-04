@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudFrontResponseHeadersPolicy",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:CreateResponseHeadersPolicy",
+        "cloudfront:UpdateResponseHeadersPolicy",
+        "cloudfront:DeleteResponseHeadersPolicy",
+        "cloudfront:GetResponseHeadersPolicy"
+      ],
+      "Resource": [
+        "arn:aws:cloudfront::940309384764:response-headers-policy/*"
+      ]
+    },
+    {
+      "Sid": "CloudFrontListResponseHeadersPolicies",
+      "Effect": "Allow",
+      "Action": "cloudfront:ListResponseHeadersPolicies",
+      "Resource": "*"
+    }
+  ]
+}
