@@ -33,6 +33,7 @@ module "api" {
   environment_variables = {
     FIELDS_TABLE_NAME = module.fields_table.table_name
     PINS_FIELD_IDS    = var.pins_field_ids
+    CORS_ALLOW_ORIGINS  = join(",", var.cors_allow_origins)
   }
 
   dynamodb_table_arns = [module.fields_table.table_arn]
