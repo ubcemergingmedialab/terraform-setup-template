@@ -127,6 +127,16 @@ const parseStartPos = (raw) => {
   return undefined;
 };
 
+/** PlayCanvas splat URL + format from DynamoDB (Phase 1 migration). */
+function playCanvasAssetFields(item) {
+  const fields = {};
+  const url = toStringValue(item.FilePlayCanvas);
+  const format = toStringValue(item.FileFormat);
+  if (url) fields.FilePlayCanvas = url;
+  if (format) fields.FileFormat = format;
+  return fields;
+}
+
 async function getPins() {
   const data = await ddb.send(new ScanCommand({ TableName: TABLE }));
   const filterSet = new Set(pinsFilterIds);
@@ -138,6 +148,7 @@ async function getPins() {
       title: i.Name,
       position: { lat: Number(i.Latitude), lng: Number(i.Longitude) },
       path: i.File,
+      ...playCanvasAssetFields(i),
       description: i.Description,
       thumbnail: i.Thumbnail,
       thumbnailAlt: i.ThumbnailAlt,
