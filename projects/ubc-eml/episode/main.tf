@@ -227,7 +227,7 @@ data "aws_iam_policy_document" "bedrock_s3_vectors" {
     ]
 
     resources = [
-      aws_s3vectors_index.knowledge_base_default.arn
+      aws_s3vectors_index.knowledge_base_default.index_arn
     ]
 
     condition {
@@ -278,7 +278,7 @@ resource "aws_bedrockagent_knowledge_base" "episode" {
     type = "S3_VECTORS"
 
     s3_vectors_configuration {
-      index_arn = aws_s3vectors_index.knowledge_base_default.arn
+      index_arn = aws_s3vectors_index.knowledge_base_default.index_arn
     }
   }
 

@@ -12,7 +12,7 @@ output "s3_vector_bucket_name" {
 }
 
 output "s3_vector_index_arn" {
-  value = aws_s3vectors_index.knowledge_base_default.arn
+  value = aws_s3vectors_index.knowledge_base_default.index_arn
 }
 
 output "bedrock_knowledge_base_id" {
