@@ -448,7 +448,7 @@ resource "aws_lambda_function" "chat_backend" {
   source_code_hash = data.archive_file.chat_backend_zip.output_base64sha256
 
   runtime       = "nodejs24.x"
-  handler       = "index.handler"
+  handler       = "handler.handler"
   timeout       = 30
   memory_size   = 128
   architectures = ["x86_64"]
