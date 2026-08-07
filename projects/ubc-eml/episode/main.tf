@@ -330,8 +330,8 @@ resource "aws_bedrock_guardrail" "episode" {
 
     filters_config {
       type            = "MISCONDUCT"
-      input_strength  = "HIGH"
-      output_strength = "HIGH"
+      input_strength  = "NONE"
+      output_strength = "NONE"
     }
 
     filters_config {
