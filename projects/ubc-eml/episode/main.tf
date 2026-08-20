@@ -320,36 +320,58 @@ resource "aws_bedrock_guardrail" "episode" {
       type            = "VIOLENCE"
       input_strength  = "HIGH"
       output_strength = "HIGH"
+      input_action    = "NONE"
+      output_action   = "NONE"
+      input_enabled   = true
+      output_enabled  = true
     }
 
     filters_config {
       type            = "PROMPT_ATTACK"
       input_strength  = "HIGH"
       output_strength = "NONE"
+      input_action    = "NONE"
+      input_enabled   = true
     }
 
     filters_config {
       type            = "MISCONDUCT"
-      input_strength  = "NONE"
-      output_strength = "NONE"
+      input_strength  = "HIGH"
+      output_strength = "HIGH"
+      input_action    = "NONE"
+      output_action   = "NONE"
+      input_enabled   = true
+      output_enabled  = true
     }
 
     filters_config {
       type            = "HATE"
       input_strength  = "HIGH"
       output_strength = "HIGH"
+      input_action    = "NONE"
+      output_action   = "NONE"
+      input_enabled   = true
+      output_enabled  = true
     }
 
     filters_config {
       type            = "SEXUAL"
       input_strength  = "HIGH"
       output_strength = "HIGH"
+      input_action    = "NONE"
+      output_action   = "NONE"
+      input_enabled   = true
+      output_enabled  = true
     }
 
     filters_config {
       type            = "INSULTS"
       input_strength  = "HIGH"
       output_strength = "HIGH"
+      input_action    = "NONE"
+      output_action   = "NONE"
+      input_enabled   = true
+      output_enabled  = true
     }
   }
 }
