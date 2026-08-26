@@ -126,8 +126,9 @@ flowchart TD
 2. Open the new folder's `terraform.auto.tfvars` and fill in `client_name`, `project_name`, `environment`, `aws_region`, `tags`.
 3. Open `main.tf` and uncomment / add the modules this project actually needs (e.g. `s3-static-site`, `cognito-user-pool`).
 4. Commit, push, open a PR.
-5. In **HCP Terraform**, in the lab's organization, click **New workspace** → **Version control workflow** → pick this repo → set **Working directory** to `projects/<client-slug>/<project-slug>` → set **Auto apply** off (we always want a human to confirm). Add an AWS credentials variable set so the workspace can talk to AWS.
-6. Merge the PR. HCP picks it up, plans, waits for you to click Apply.
+5. **IAM policy** — Before the first apply, build a scoped permissions policy from [`docs/iam/hcp-terraform-policy.template.json`](./docs/iam/hcp-terraform-policy.template.json) and attach it to the shared `HCPTerraform` OIDC role. Keep only the statement blocks that match the modules you enabled. Full steps: [`docs/iam/hcp-terraform-policy.md`](./docs/iam/hcp-terraform-policy.md).
+6. In **HCP Terraform**, in the lab's organization, click **New workspace** → **Version control workflow** → pick this repo → set **Working directory** to `projects/<client-slug>/<project-slug>` → set **Auto apply** off (we always want a human to confirm). Wire the workspace to `HCPTerraform` dynamic credentials (or an AWS credentials variable set).
+7. Merge the PR. HCP picks it up, plans, waits for you to click Apply.
 
 ---
 
@@ -189,6 +190,7 @@ lab-terraform/
 ├── docs/
 │   ├── flowchart.md               ← All workflow diagrams
 │   ├── conventions.md             ← Naming, tagging, variable contract
+│   ├── iam/                       ← HCPTerraform policy template + new-project IAM guide
 │   ├── transplant.md              ← Client hand-off checklist
 │   └── superpowers/specs/         ← Design records (the "why" archive)
 │
