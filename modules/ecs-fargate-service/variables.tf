@@ -1,6 +1,6 @@
 variable "name_prefix" {
   type        = string
-  description = "Name prefix for all resources (use ${client_name}-${project_name}-${environment} pattern)."
+  description = "Name prefix for all resources (use client_name-project_name-environment pattern)."
 }
 
 variable "container_image" {
