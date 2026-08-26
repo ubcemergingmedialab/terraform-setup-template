@@ -5,7 +5,7 @@ terraform {
     organization = "EML"
 
     workspaces {
-      name = "poetryhouse-transcribe-proxy"
+      name = "poetry-transcribe"
     }
   }
 

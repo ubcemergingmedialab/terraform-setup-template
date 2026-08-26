@@ -1,5 +1,5 @@
-client_name  = "poetryhouse"
-project_name = "transcribe-proxy"
+client_name  = "poetry"
+project_name = "transcribe"
 environment  = "dev"
 aws_region   = "ca-central-1"
 
