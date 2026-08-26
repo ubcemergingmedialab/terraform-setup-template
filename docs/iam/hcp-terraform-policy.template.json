@@ -1,0 +1,273 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TerraformReadIdentity",
+      "Effect": "Allow",
+      "Action": "sts:GetCallerIdentity",
+      "Resource": "*"
+    },
+    {
+      "Sid": "DynamoDBProject",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:DescribeContinuousBackups",
+        "dynamodb:UpdateContinuousBackups",
+        "dynamodb:UpdateTable",
+        "dynamodb:DescribeTimeToLive",
+        "dynamodb:UpdateTimeToLive",
+        "dynamodb:TagResource",
+        "dynamodb:UntagResource",
+        "dynamodb:ListTagsOfResource"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:table/REPLACE_NAME_PREFIX-*"
+      ]
+    },
+    {
+      "Sid": "CognitoProject",
+      "Effect": "Allow",
+      "Action": [
+        "cognito-idp:CreateUserPool",
+        "cognito-idp:DeleteUserPool",
+        "cognito-idp:DescribeUserPool",
+        "cognito-idp:UpdateUserPool",
+        "cognito-idp:GetUserPoolMfaConfig",
+        "cognito-idp:SetUserPoolMfaConfig",
+        "cognito-idp:CreateUserPoolClient",
+        "cognito-idp:DeleteUserPoolClient",
+        "cognito-idp:DescribeUserPoolClient",
+        "cognito-idp:UpdateUserPoolClient",
+        "cognito-idp:CreateUserPoolDomain",
+        "cognito-idp:DeleteUserPoolDomain",
+        "cognito-idp:DescribeUserPoolDomain",
+        "cognito-idp:UpdateUserPoolDomain",
+        "cognito-idp:TagResource",
+        "cognito-idp:UntagResource",
+        "cognito-idp:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:cognito-idp:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:userpool/*"
+    },
+    {
+      "Sid": "CognitoDescribeUserPoolDomainGlobal",
+      "Effect": "Allow",
+      "Action": "cognito-idp:DescribeUserPoolDomain",
+      "Resource": "*"
+    },
+    {
+      "Sid": "LambdaProject",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:GetFunctionCodeSigningConfig",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:ListVersionsByFunction",
+        "lambda:PublishVersion",
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:GetPolicy",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "lambda:ListTags"
+      ],
+      "Resource": "arn:aws:lambda:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:function:REPLACE_NAME_PREFIX-*"
+    },
+    {
+      "Sid": "ApiGatewayV2Project",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:GET",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:PATCH",
+        "apigateway:DELETE",
+        "apigateway:TagResource",
+        "apigateway:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:REPLACE_AWS_REGION::/apis",
+        "arn:aws:apigateway:REPLACE_AWS_REGION::/apis/*",
+        "arn:aws:apigateway:REPLACE_AWS_REGION::/tags/*"
+      ]
+    },
+    {
+      "Sid": "CloudFrontProject",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:CreateDistribution",
+        "cloudfront:UpdateDistribution",
+        "cloudfront:DeleteDistribution",
+        "cloudfront:GetDistribution",
+        "cloudfront:GetDistributionConfig",
+        "cloudfront:CreateOriginAccessControl",
+        "cloudfront:UpdateOriginAccessControl",
+        "cloudfront:DeleteOriginAccessControl",
+        "cloudfront:GetOriginAccessControl",
+        "cloudfront:CreateResponseHeadersPolicy",
+        "cloudfront:UpdateResponseHeadersPolicy",
+        "cloudfront:DeleteResponseHeadersPolicy",
+        "cloudfront:GetResponseHeadersPolicy",
+        "cloudfront:TagResource",
+        "cloudfront:UntagResource",
+        "cloudfront:ListTagsForResource"
+      ],
+      "Resource": [
+        "arn:aws:cloudfront::REPLACE_AWS_ACCOUNT_ID:distribution/*",
+        "arn:aws:cloudfront::REPLACE_AWS_ACCOUNT_ID:origin-access-control/*",
+        "arn:aws:cloudfront::REPLACE_AWS_ACCOUNT_ID:response-headers-policy/*"
+      ]
+    },
+    {
+      "Sid": "CloudFrontListAccount",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:ListDistributions",
+        "cloudfront:ListOriginAccessControls",
+        "cloudfront:ListTagsForResource",
+        "cloudfront:ListCachePolicies",
+        "cloudfront:GetCachePolicy",
+        "cloudfront:ListOriginRequestPolicies",
+        "cloudfront:GetOriginRequestPolicy",
+        "cloudfront:ListResponseHeadersPolicies",
+        "cloudfront:GetResponseHeadersPolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "LogsDescribeAccount",
+      "Effect": "Allow",
+      "Action": "logs:DescribeLogGroups",
+      "Resource": "*"
+    },
+    {
+      "Sid": "LogsProject",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:ListTagsForResource",
+        "logs:TagResource",
+        "logs:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:logs:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:log-group:/aws/lambda/REPLACE_NAME_PREFIX-*",
+        "arn:aws:logs:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:log-group:/aws/lambda/REPLACE_NAME_PREFIX-*:*"
+      ]
+    },
+    {
+      "Sid": "S3Project",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:DeleteBucket",
+        "s3:ListBucket",
+        "s3:GetAccelerateConfiguration",
+        "s3:PutAccelerateConfiguration",
+        "s3:GetBucketAcl",
+        "s3:PutBucketAcl",
+        "s3:GetBucketCORS",
+        "s3:PutBucketCORS",
+        "s3:GetBucketLocation",
+        "s3:GetBucketLogging",
+        "s3:PutBucketLogging",
+        "s3:GetBucketNotification",
+        "s3:PutBucketNotification",
+        "s3:GetBucketObjectLockConfiguration",
+        "s3:PutBucketObjectLockConfiguration",
+        "s3:GetBucketOwnershipControls",
+        "s3:PutBucketOwnershipControls",
+        "s3:GetBucketPolicy",
+        "s3:PutBucketPolicy",
+        "s3:DeleteBucketPolicy",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:PutBucketPublicAccessBlock",
+        "s3:GetBucketRequestPayment",
+        "s3:PutBucketRequestPayment",
+        "s3:GetBucketTagging",
+        "s3:PutBucketTagging",
+        "s3:GetBucketVersioning",
+        "s3:PutBucketVersioning",
+        "s3:GetBucketWebsite",
+        "s3:PutBucketWebsite",
+        "s3:GetEncryptionConfiguration",
+        "s3:PutEncryptionConfiguration",
+        "s3:GetLifecycleConfiguration",
+        "s3:PutLifecycleConfiguration",
+        "s3:GetReplicationConfiguration",
+        "s3:PutReplicationConfiguration"
+      ],
+      "Resource": [
+        "arn:aws:s3:::REPLACE_NAME_PREFIX-*",
+        "arn:aws:s3:::REPLACE_NAME_PREFIX-*/*"
+      ]
+    },
+    {
+      "Sid": "IAMRolesProject",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:UpdateRole",
+        "iam:PutRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": "arn:aws:iam::REPLACE_AWS_ACCOUNT_ID:role/REPLACE_NAME_PREFIX-*"
+    },
+    {
+      "Sid": "IAMPassRoleToLambda",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::REPLACE_AWS_ACCOUNT_ID:role/REPLACE_NAME_PREFIX-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "lambda.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "AttachLambdaBasicExecution",
+      "Effect": "Allow",
+      "Action": "iam:AttachRolePolicy",
+      "Resource": "arn:aws:iam::REPLACE_AWS_ACCOUNT_ID:role/REPLACE_NAME_PREFIX-*",
+      "Condition": {
+        "ArnEquals": {
+          "iam:PolicyARN": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        }
+      }
+    },
+    {
+      "Sid": "IAMOptionalApiInvokerUser",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateUser",
+        "iam:DeleteUser",
+        "iam:GetUser",
+        "iam:PutUserPolicy",
+        "iam:DeleteUserPolicy",
+        "iam:CreateAccessKey",
+        "iam:DeleteAccessKey",
+        "iam:ListAccessKeys",
+        "iam:TagUser",
+        "iam:UntagUser"
+      ],
+      "Resource": "arn:aws:iam::REPLACE_AWS_ACCOUNT_ID:user/REPLACE_NAME_PREFIX-*"
+    }
+  ]
+}

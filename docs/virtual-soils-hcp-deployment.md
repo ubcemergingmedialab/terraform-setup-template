@@ -188,6 +188,8 @@ Attach this as a **customer managed policy** or **inline policy** on IAM role **
 
 **Canonical copy in git:** [`docs/iam/hcp-terraform-virtual-soils-policy.json`](./iam/hcp-terraform-virtual-soils-policy.json) — paste from there if the console loses your edit.
 
+**New projects:** start from [`docs/iam/hcp-terraform-policy.template.json`](./iam/hcp-terraform-policy.template.json) and [`docs/iam/hcp-terraform-policy.md`](./iam/hcp-terraform-policy.md) instead of copying this file wholesale.
+
 **Policy size limit:** AWS customer managed policies max out at **6144 characters**. The full Virtual Soils policy exceeds that when CloudFront response-headers actions are included. Attach the supplemental **inline** policy on the same role:
 
 - File: [`docs/iam/hcp-terraform-cloudfront-response-headers-inline.json`](./iam/hcp-terraform-cloudfront-response-headers-inline.json)
@@ -263,8 +265,8 @@ Site buckets (`ubc-eml-virtual-soils-prod-site-*`) are already covered by the ex
 
 ## Lessons for future lab projects
 
-1. Start with a **scoped** policy, but expect **describe/get/tag** gaps—plan for 2–3 apply iterations.
-2. Keep the **full policy in git** (this doc) so console edits are recoverable.
+1. Start with a **scoped** policy from [`hcp-terraform-policy.template.json`](./iam/hcp-terraform-policy.template.json) (see [`hcp-terraform-policy.md`](./iam/hcp-terraform-policy.md)), but expect **describe/get/tag** gaps—plan for 2–3 apply iterations.
+2. Keep the **full policy in git** (`docs/iam/hcp-terraform-<project>-policy.json`) so console edits are recoverable.
 3. **Never assume** a legacy bucket name from old exports exists in the current account—verify or use generated names.
 4. **Import** pre-existing **resources** with `terraform import` when using `legacy_*` names; **migrate row data** separately if the table is new or empty (zip scripts or same-account S3 export).
 5. Separate **HCP credentials** (infra) from **app build env vars** (`VITE_*`).

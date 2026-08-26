@@ -11,7 +11,8 @@ This is the project skeleton. Copy this folder to start a new deployment.
 5. In `main.tf`, uncomment the module blocks for the services this project actually needs. Delete the rest.
 6. In `outputs.tf`, uncomment the outputs that match the modules you enabled.
 7. Write a short README in the new folder explaining what the project is.
-8. Commit + push, open a PR, then create the matching HCP workspace (see [`deliverable.md` §4](../../deliverable.md#4-starting-a-new-client-project)).
+8. Build an IAM policy from [`docs/iam/hcp-terraform-policy.template.json`](../../docs/iam/hcp-terraform-policy.template.json) — keep only the statement blocks for your modules, attach to `HCPTerraform`. See [`docs/iam/hcp-terraform-policy.md`](../../docs/iam/hcp-terraform-policy.md).
+9. Commit + push, open a PR, then create the matching HCP workspace (see [`deliverable.md` §4](../../deliverable.md#4-starting-a-new-client-project)).
 
 ## What's already wired up for you
 
