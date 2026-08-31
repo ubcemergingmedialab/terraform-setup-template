@@ -1,0 +1,10 @@
+{
+  "name": "episode-chat-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.1066.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.1066.0"
+  }
+}
