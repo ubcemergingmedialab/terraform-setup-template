@@ -71,6 +71,12 @@ variable "private_subnet_ids" {
   description = "Private subnet IDs for ECS tasks."
 }
 
+variable "assign_public_ip" {
+  type        = bool
+  description = "Assign public IP to ECS tasks. Required if using public subnets or private subnets without NAT Gateway."
+  default     = false
+}
+
 variable "alb_ingress_cidr_blocks" {
   type        = list(string)
   description = "CIDR blocks allowed to access the ALB."

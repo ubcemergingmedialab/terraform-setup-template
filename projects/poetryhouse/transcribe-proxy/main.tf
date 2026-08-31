@@ -89,6 +89,7 @@ module "transcribe_proxy" {
   vpc_id             = data.aws_vpc.default.id
   public_subnet_ids  = data.aws_subnets.public.ids
   private_subnet_ids = local.private_subnet_ids
+  assign_public_ip   = true  # Required for ECR access without NAT Gateway
 
   alb_ingress_cidr_blocks = var.allowed_cidr_blocks
 
