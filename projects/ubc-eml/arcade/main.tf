@@ -312,6 +312,16 @@ resource "aws_lambda_function" "api" {
   depends_on = [aws_iam_role_policy_attachment.lambda_basic_execution]
 }
 
+# Lambda creates this log group implicitly on first invocation, and an
+# implicitly-created group NEVER EXPIRES. Production's 30 days was set by hand;
+# declaring it here is what stops that from being silently lost — if the
+# function were ever recreated without this, logs would start accumulating
+# forever and nothing would flag it.
+resource "aws_cloudwatch_log_group" "api" {
+  name              = "/aws/lambda/${local.lambda_name}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
 # The API is reached through a Function URL, not API Gateway.
 #
 # AuthType MUST stay NONE. The Amplify rewrite that fronts this cannot SigV4-sign

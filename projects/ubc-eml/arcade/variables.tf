@@ -167,6 +167,12 @@ variable "lambda_reserved_concurrency" {
   default     = 10
 }
 
+variable "lambda_log_retention_days" {
+  type        = number
+  description = "Days of CloudWatch logs kept for the API. Production is 30; a log group Lambda creates for itself never expires, so leaving this unmanaged quietly accumulates cost."
+  default     = 30
+}
+
 variable "lambda_role_description" {
   type        = string
   description = "Description on the execution role. Set to match the live role so a plan does not blank it."

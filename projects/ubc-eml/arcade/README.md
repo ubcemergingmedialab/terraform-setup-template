@@ -25,6 +25,21 @@ build those stories in a browser studio and publish them.
 | IAM role | `eml-arcade-lambda-exec` | `AWSLambdaBasicExecutionRole` only; bucket access comes from the bucket policy |
 | Lambda | `eml-arcade-api` | Shape only — see below |
 | Lambda Function URL | — | `AuthType = NONE`, deliberately |
+| CloudWatch log group | `/aws/lambda/eml-arcade-api` | 30-day retention. Declared because an implicitly-created group never expires |
+
+### Coverage is partial, and the gap is the whole hosting tier
+
+This stack is the **storage and API** half of ARCADE. It does not describe how
+the site is served. Audited against the account on 2026-09-03:
+
+| Not managed here | Where it actually lives |
+|---|---|
+| Amplify app `d114nr20m4npww` — repo connection, in-console buildSpec, `VITE_ASSET_BASE_URL` / `VITE_STORY_BASE_URL`, all three rewrite rules, branches `main` + `feat/arcade-storage-b`, the `arcade.ubc-dxl.ca` domain and its Amplify-managed certificate | The Amplify console |
+| DNS for `ubc-dxl.ca` | A Route 53 zone this account cannot even read — `route53:ListHostedZones` is denied to `PokemonGoServices`. Managing it from here is not merely undone, it is not currently possible |
+
+So `terraform destroy` on this workspace would **not** take the site down, and a
+clean `plan` here is **not** evidence that hosting is unchanged. Treat the two
+halves as separate systems until Amplify is brought in deliberately.
 
 ## What this does **not** manage, on purpose
 
@@ -83,9 +98,18 @@ terraform import aws_iam_role.lambda_exec                    eml-arcade-lambda-e
 terraform import aws_iam_role_policy_attachment.lambda_basic_execution \
   'eml-arcade-lambda-exec/arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
 
-terraform import aws_lambda_function.api     eml-arcade-api
-terraform import aws_lambda_function_url.api eml-arcade-api
+terraform import aws_lambda_function.api      eml-arcade-api
+terraform import aws_lambda_function_url.api  eml-arcade-api
+MSYS_NO_PATHCONV=1 terraform import aws_cloudwatch_log_group.api /aws/lambda/eml-arcade-api
 ```
+
+> **The `MSYS_NO_PATHCONV=1` on that last line is required in Git Bash on
+> Windows.** Without it the leading slash is rewritten into a Windows path and
+> the import fails with a confusing `InvalidParameterException` about
+> `logGroupNamePrefix` — the ID arrives as
+> `C:/Program Files/Git/aws/lambda/eml-arcade-api`. The same conversion breaks
+> `aws logs describe-log-groups --log-group-name-prefix /aws/...`. Harmless in
+> PowerShell, CMD, Linux or macOS.
 
 `random_id.bucket_suffix` is **not** imported — it has `count = 0` whenever
 `legacy_bucket_name` is set, which it is here.
@@ -93,12 +117,12 @@ terraform import aws_lambda_function_url.api eml-arcade-api
 ### What the first plan legitimately shows
 
 This was rehearsed against production with local state (import + plan, both
-read-only). The expected result is **`0 to add, 4 to change, 0 to destroy`** —
-four in-place updates, none of which alter behaviour:
+read-only). The expected result is **`0 to add, 5 to change, 0 to destroy`** —
+five in-place updates, none of which alter behaviour:
 
 | Change | Why it is safe |
 |---|---|
-| `tags_all` gains `Client` / `Environment` / `ManagedBy` / `Owner` / `Project` / `Repo` on the bucket, role and function; the bucket's `Project` tag moves `eml-arcade` → `ARcade` | `default_tags` bringing hand-made resources under the tagging convention. This is the point of adopting them. |
+| `tags_all` gains `Client` / `Environment` / `ManagedBy` / `Owner` / `Project` / `Repo` on the bucket, role, function and log group; the bucket's `Project` tag moves `eml-arcade` → `ARcade` | `default_tags` bringing hand-made resources under the tagging convention. This is the point of adopting them. |
 | `+ force_destroy = false` on the bucket | A Terraform-side default being recorded. Not an API change, and the *safe* value. |
 | `+ publish = false` on the function | Same — a default, meaning "do not cut a new version". |
 | `+ filter {}` on two lifecycle rules | Provider normalisation. The live rules already have an empty filter. |
