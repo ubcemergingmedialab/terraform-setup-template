@@ -694,3 +694,14 @@ resource "aws_cognito_identity_pool_roles_attachment" "transcribe" {
     unauthenticated = aws_iam_role.cognito_unauth.arn
   }
 }
+
+# Viewer app (apps/viewer/dist). Keeps bucket suffix "site" for existing prod bucket/state.
+module "viewer_site" {
+  count  = var.enable_viewer_site ? 1 : 0
+  source = "../../../modules/s3-static-site"
+
+  name_prefix          = local.name_prefix
+  bucket_name_suffix   = "site"
+  spa_routing          = true
+  cors_allowed_origins = var.cors_allow_origins
+}

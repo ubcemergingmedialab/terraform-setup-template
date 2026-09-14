@@ -44,3 +44,9 @@ variable "polly_lambda_source_dir" {
   description = "Path, relative to this project root, containing the Polly Lambda source."
   default     = "lambda/polly"
 }
+
+variable "enable_viewer_site" {
+  type        = bool
+  description = "S3 + CloudFront for the public viewer app (apps/viewer). Bucket suffix: site."
+  default     = true
+}

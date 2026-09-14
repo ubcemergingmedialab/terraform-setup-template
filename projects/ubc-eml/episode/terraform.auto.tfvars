@@ -8,3 +8,12 @@ tags = {
   Project  = "episode"
   Repo     = "26---1001-EPISODE"
 }
+
+# Viewer site vars
+enable_viewer_site = true
+
+# API CORS + assets bucket CORS: both viewer and admin CloudFront URLs (add admin URL after apply).
+cors_allow_origins = [
+  "http://localhost:5173",
+  "cloudfronturl",
+]
