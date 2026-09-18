@@ -14,6 +14,5 @@ enable_viewer_site = true
 
 # API CORS + assets bucket CORS: both viewer and admin CloudFront URLs (add admin URL after apply).
 cors_allow_origins = [
-  "http://localhost:5173",
-  "cloudfronturl",
+  "http://localhost:5173"
 ]
