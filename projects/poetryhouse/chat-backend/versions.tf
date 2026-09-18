@@ -5,20 +5,18 @@ terraform {
     organization = "EML"
 
     workspaces {
-      # Create this workspace in HCP Terraform, then match the name here.
-      name = "ubc-poetryhouse-chat-backend"
+      name = "poetry-chat"
     }
   }
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 6.24.0"
+      version = "~> 5.0"
     }
-
     archive = {
       source  = "hashicorp/archive"
-      version = ">= 2.4"
+      version = "~> 2.4"
     }
   }
 }

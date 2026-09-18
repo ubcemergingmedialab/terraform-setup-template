@@ -1,25 +1,26 @@
+# ========================================
+# Contract Variables (required for all projects)
+# ========================================
+
 variable "client_name" {
   type        = string
   description = "Client slug (lowercase, hyphen-separated)."
-  default     = "ubc"
 }
 
 variable "project_name" {
   type        = string
   description = "Project slug."
-  default     = "poetryhouse"
 }
 
 variable "environment" {
   type        = string
-  description = "Deployment environment (dev, prod, …)."
+  description = "Deployment environment (dev, prod, ...)."
   default     = "dev"
 }
 
 variable "aws_region" {
   type        = string
   description = "AWS region for all resources."
-  default     = "ca-central-1"
 }
 
 variable "tags" {
@@ -28,28 +29,30 @@ variable "tags" {
   default     = {}
 }
 
-# --- Project-specific ---
+# ========================================
+# Project-Specific Variables
+# ========================================
 
 variable "bedrock_model_id" {
   type        = string
-  description = "Bedrock model ID (or inference-profile ID) used by the chat backend Lambda. Cross-region profiles use a us./eu./apac. prefix."
+  description = "Bedrock model (or inference-profile) ID the chat Lambda calls."
   default     = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 }
 
-variable "chat_lambda_source_dir" {
-  type        = string
-  description = "Path, relative to this project root, containing the chat backend Lambda source."
-  default     = "lambda/chat-backend"
-}
-
-variable "lambda_timeout_seconds" {
-  type        = number
-  description = "Lambda timeout. Non-streaming chat completion needs headroom for the full response."
-  default     = 30
+variable "bedrock_model_arns" {
+  type        = list(string)
+  description = "ARNs the Lambda may invoke via bedrock:InvokeModel. Default ['*'] allows any model in the account."
+  default     = ["*"]
 }
 
 variable "lambda_memory_mb" {
   type        = number
-  description = "Lambda memory. Most time is spent waiting on Bedrock, so this can stay small."
+  description = "Lambda memory in MB."
   default     = 256
+}
+
+variable "lambda_timeout_seconds" {
+  type        = number
+  description = "Lambda timeout in seconds."
+  default     = 30
 }

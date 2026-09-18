@@ -2,13 +2,7 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "TerraformReadIdentity",
-      "Effect": "Allow",
-      "Action": "sts:GetCallerIdentity",
-      "Resource": "*"
-    },
-    {
-      "Sid": "DynamoDBProject",
+      "Sid": "DynamoDBScoped",
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
@@ -24,11 +18,13 @@
         "dynamodb:ListTagsOfResource"
       ],
       "Resource": [
-        "arn:aws:dynamodb:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:table/REPLACE_NAME_PREFIX-*"
+        "arn:aws:dynamodb:ca-central-1:940309384764:table/eml_fields",
+        "arn:aws:dynamodb:ca-central-1:940309384764:table/ubc-eml-virtual-soils-*",
+        "arn:aws:dynamodb:ca-central-1:940309384764:table/cofood-garden-capture-*"
       ]
     },
     {
-      "Sid": "CognitoProject",
+      "Sid": "CognitoScoped",
       "Effect": "Allow",
       "Action": [
         "cognito-idp:CreateUserPool",
@@ -49,7 +45,7 @@
         "cognito-idp:UntagResource",
         "cognito-idp:ListTagsForResource"
       ],
-      "Resource": "arn:aws:cognito-idp:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:userpool/*"
+      "Resource": "arn:aws:cognito-idp:ca-central-1:940309384764:userpool/*"
     },
     {
       "Sid": "CognitoDescribeUserPoolDomainGlobal",
@@ -58,33 +54,7 @@
       "Resource": "*"
     },
     {
-      "Sid": "LambdaProject",
-      "Effect": "Allow",
-      "Action": [
-        "lambda:CreateFunction",
-        "lambda:DeleteFunction",
-        "lambda:GetFunction",
-        "lambda:GetFunctionConfiguration",
-        "lambda:GetFunctionCodeSigningConfig",
-        "lambda:UpdateFunctionCode",
-        "lambda:UpdateFunctionConfiguration",
-        "lambda:ListVersionsByFunction",
-        "lambda:PublishVersion",
-        "lambda:AddPermission",
-        "lambda:RemovePermission",
-        "lambda:GetPolicy",
-        "lambda:CreateFunctionUrlConfig",
-        "lambda:GetFunctionUrlConfig",
-        "lambda:UpdateFunctionUrlConfig",
-        "lambda:DeleteFunctionUrlConfig",
-        "lambda:TagResource",
-        "lambda:UntagResource",
-        "lambda:ListTags"
-      ],
-      "Resource": "arn:aws:lambda:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:function:REPLACE_NAME_PREFIX-*"
-    },
-    {
-      "Sid": "ApiGatewayV2Project",
+      "Sid": "ApiGatewayV2Scoped",
       "Effect": "Allow",
       "Action": [
         "apigateway:GET",
@@ -94,13 +64,13 @@
         "apigateway:DELETE"
       ],
       "Resource": [
-        "arn:aws:apigateway:REPLACE_AWS_REGION::/apis",
-        "arn:aws:apigateway:REPLACE_AWS_REGION::/apis/*",
-        "arn:aws:apigateway:REPLACE_AWS_REGION::/tags/*"
+        "arn:aws:apigateway:ca-central-1::/apis",
+        "arn:aws:apigateway:ca-central-1::/apis/*",
+        "arn:aws:apigateway:ca-central-1::/tags/*"
       ]
     },
     {
-      "Sid": "CloudFrontProject",
+      "Sid": "CloudFrontScoped",
       "Effect": "Allow",
       "Action": [
         "cloudfront:CreateDistribution",
@@ -121,9 +91,9 @@
         "cloudfront:ListTagsForResource"
       ],
       "Resource": [
-        "arn:aws:cloudfront::REPLACE_AWS_ACCOUNT_ID:distribution/*",
-        "arn:aws:cloudfront::REPLACE_AWS_ACCOUNT_ID:origin-access-control/*",
-        "arn:aws:cloudfront::REPLACE_AWS_ACCOUNT_ID:response-headers-policy/*"
+        "arn:aws:cloudfront::940309384764:distribution/*",
+        "arn:aws:cloudfront::940309384764:origin-access-control/*",
+        "arn:aws:cloudfront::940309384764:response-headers-policy/*"
       ]
     },
     {
@@ -143,30 +113,7 @@
       "Resource": "*"
     },
     {
-      "Sid": "LogsDescribeAccount",
-      "Effect": "Allow",
-      "Action": "logs:DescribeLogGroups",
-      "Resource": "*"
-    },
-    {
-      "Sid": "LogsProject",
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:DeleteLogGroup",
-        "logs:PutRetentionPolicy",
-        "logs:DeleteRetentionPolicy",
-        "logs:ListTagsForResource",
-        "logs:TagResource",
-        "logs:UntagResource"
-      ],
-      "Resource": [
-        "arn:aws:logs:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:log-group:/aws/lambda/REPLACE_NAME_PREFIX-*",
-        "arn:aws:logs:REPLACE_AWS_REGION:REPLACE_AWS_ACCOUNT_ID:log-group:/aws/lambda/REPLACE_NAME_PREFIX-*:*"
-      ]
-    },
-    {
-      "Sid": "S3Project",
+      "Sid": "S3Scoped",
       "Effect": "Allow",
       "Action": [
         "s3:CreateBucket",
@@ -208,68 +155,13 @@
         "s3:PutReplicationConfiguration"
       ],
       "Resource": [
-        "arn:aws:s3:::REPLACE_NAME_PREFIX-*",
-        "arn:aws:s3:::REPLACE_NAME_PREFIX-*/*"
+        "arn:aws:s3:::eml-soils-db",
+        "arn:aws:s3:::eml-soils-db/*",
+        "arn:aws:s3:::ubc-eml-virtual-soils-*",
+        "arn:aws:s3:::ubc-eml-virtual-soils-*/*",
+        "arn:aws:s3:::cofood-garden-capture-*",
+        "arn:aws:s3:::cofood-garden-capture-*/*"
       ]
-    },
-    {
-      "Sid": "IAMRolesProject",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateRole",
-        "iam:DeleteRole",
-        "iam:GetRole",
-        "iam:UpdateRole",
-        "iam:PutRolePolicy",
-        "iam:GetRolePolicy",
-        "iam:DeleteRolePolicy",
-        "iam:AttachRolePolicy",
-        "iam:DetachRolePolicy",
-        "iam:ListRolePolicies",
-        "iam:ListAttachedRolePolicies",
-        "iam:TagRole",
-        "iam:UntagRole"
-      ],
-      "Resource": "arn:aws:iam::REPLACE_AWS_ACCOUNT_ID:role/REPLACE_NAME_PREFIX-*"
-    },
-    {
-      "Sid": "IAMPassRoleToLambda",
-      "Effect": "Allow",
-      "Action": "iam:PassRole",
-      "Resource": "arn:aws:iam::REPLACE_AWS_ACCOUNT_ID:role/REPLACE_NAME_PREFIX-*",
-      "Condition": {
-        "StringEquals": {
-          "iam:PassedToService": "lambda.amazonaws.com"
-        }
-      }
-    },
-    {
-      "Sid": "AttachLambdaBasicExecution",
-      "Effect": "Allow",
-      "Action": "iam:AttachRolePolicy",
-      "Resource": "arn:aws:iam::REPLACE_AWS_ACCOUNT_ID:role/REPLACE_NAME_PREFIX-*",
-      "Condition": {
-        "ArnEquals": {
-          "iam:PolicyARN": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-        }
-      }
-    },
-    {
-      "Sid": "IAMOptionalApiInvokerUser",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateUser",
-        "iam:DeleteUser",
-        "iam:GetUser",
-        "iam:PutUserPolicy",
-        "iam:DeleteUserPolicy",
-        "iam:CreateAccessKey",
-        "iam:DeleteAccessKey",
-        "iam:ListAccessKeys",
-        "iam:TagUser",
-        "iam:UntagUser"
-      ],
-      "Resource": "arn:aws:iam::REPLACE_AWS_ACCOUNT_ID:user/REPLACE_NAME_PREFIX-*"
     }
   ]
 }
