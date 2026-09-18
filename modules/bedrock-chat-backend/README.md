@@ -34,12 +34,6 @@ module "chat_backend" {
 }
 ```
 
-Package Lambda deps before `plan`:
-
-```powershell
-npm --prefix lambda/chat-backend install
-```
-
 Expose what the client needs from the project's `outputs.tf`:
 
 ```hcl
@@ -47,6 +41,33 @@ output "chat_function_url"        { value = module.chat_backend.function_url }
 output "chat_invoker_access_key_id"     { value = module.chat_backend.invoker_access_key_id,     sensitive = true }
 output "chat_invoker_secret_access_key" { value = module.chat_backend.invoker_secret_access_key, sensitive = true }
 ```
+
+## Dependencies — do NOT need to be packaged (for the default handler)
+
+The reference handler imports only `@aws-sdk/client-bedrock-runtime`, which is
+**preinstalled in the AWS Lambda Node.js runtime**. So the deploy zip only needs
+`handler.mjs` — there is **no** `node_modules` to build or commit, and no
+`npm install` step before `plan`/`apply`. This matches the repo convention (see
+`projects/ubc-eml/virtual-soils/lambda`, which also ships only handler +
+`package.json` + `package-lock.json`, with `node_modules/` gitignored).
+
+What `package.json` / `package-lock.json` are for here:
+- Pin the SDK version for local dev and reproducibility.
+- Let CI run `npm ci` so `terraform validate` / `archive_file` can resolve and
+  hash the source directory. CI installs deps into a gitignored `node_modules/`;
+  that folder is **not** shipped and **not** committed.
+
+**When you WOULD need to bundle `node_modules`:** if you add any dependency that
+is *not* part of the Lambda runtime (i.e. anything other than the bundled
+`@aws-sdk/*` v3 clients). In that case the runtime-provided trick no longer
+covers you and you must ship the deps. Options:
+- Add a build step in the HCP run (pre-plan) that runs `npm ci` in the source
+  dir, or
+- Add a `null_resource` + `local-exec` in the module that runs `npm ci` before
+  `archive_file` (requires Node/npm in the Terraform run environment).
+
+Until then, none of that is necessary — the default handler runs on the
+runtime-provided SDK.
 
 ## Client signing
 

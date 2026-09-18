@@ -1,0 +1,18 @@
+# Copy this file to `terraform.auto.tfvars` and adjust as needed.
+# Do NOT put AWS credentials or secrets here. Set those as sensitive
+# environment variables in the HCP workspace instead.
+
+client_name  = "ubc"
+project_name = "poetryhouse"
+environment  = "dev"
+aws_region   = "ca-central-1"
+
+# Bedrock model the chat Lambda calls. For cross-region Anthropic models you
+# will typically need an inference-profile ID, e.g.:
+#   bedrock_model_id = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+bedrock_model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+tags = {
+  Owner      = "media-lab"
+  CostCenter = "research-internal"
+}

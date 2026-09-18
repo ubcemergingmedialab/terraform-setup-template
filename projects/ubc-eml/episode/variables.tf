@@ -44,3 +44,15 @@ variable "polly_lambda_source_dir" {
   description = "Path, relative to this project root, containing the Polly Lambda source."
   default     = "lambda/polly"
 }
+
+variable "cors_allow_origins" {
+  type        = list(string)
+  description = "Origins for API Gateway CORS."
+  default     = ["*"]
+}
+
+variable "enable_viewer_site" {
+  type        = bool
+  description = "S3 + CloudFront for the public viewer app (apps/viewer). Bucket suffix: site."
+  default     = true
+}
