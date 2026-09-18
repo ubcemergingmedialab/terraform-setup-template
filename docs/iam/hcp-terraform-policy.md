@@ -69,6 +69,7 @@ Use this table — match against the modules you uncomment in `main.tf`:
 | `dynamodb-table` | `DynamoDBProject` | |
 | `cognito-user-pool` | `CognitoProject`, `CognitoDescribeUserPoolDomainGlobal` | Global describe is an AWS quirk — keep both |
 | `lambda-http-api` | `LambdaProject`, `ApiGatewayV2Project`, `LogsDescribeAccount`, `LogsProject`, `IAMRolesProject`, `IAMPassRoleToLambda`, `AttachLambdaBasicExecution` | If Lambda reads DynamoDB, also keep `DynamoDBProject` |
+| `bedrock-chat-backend` | `LambdaProject`, `LogsDescribeAccount`, `LogsProject`, `IAMRolesProject`, `IAMPassRoleToLambda`, `AttachLambdaBasicExecution` | Uses a Lambda **Function URL**, not API Gateway — the `lambda:*FunctionUrlConfig` actions are in `LambdaProject`; drop `ApiGatewayV2Project`. Keep `IAMOptionalApiInvokerUser` when `create_invoker_user = true`. No `bedrock:*` needed for HCP: Terraform only writes the Lambda role's inline invoke policy via `iam:PutRolePolicy`. Enable the model in Bedrock model access out-of-band. |
 | `s3-static-site` | `S3Project`, `CloudFrontProject`, `CloudFrontListAccount` | |
 | `s3-assets-bucket` | `S3Project` | Add `CloudFrontProject` + `CloudFrontListAccount` when `enable_cdn = true` |
 | `iam-api-invoker` | `IAMOptionalApiInvokerUser` | Optional; only if `create_iam_api_invoker = true` |

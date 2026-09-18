@@ -1,0 +1,58 @@
+# ========================================
+# Contract Variables (required for all projects)
+# ========================================
+
+variable "client_name" {
+  type        = string
+  description = "Client slug (lowercase, hyphen-separated)."
+}
+
+variable "project_name" {
+  type        = string
+  description = "Project slug."
+}
+
+variable "environment" {
+  type        = string
+  description = "Deployment environment (dev, prod, ...)."
+  default     = "dev"
+}
+
+variable "aws_region" {
+  type        = string
+  description = "AWS region for all resources."
+}
+
+variable "tags" {
+  type        = map(string)
+  description = "Extra tags merged onto default_tags."
+  default     = {}
+}
+
+# ========================================
+# Project-Specific Variables
+# ========================================
+
+variable "bedrock_model_id" {
+  type        = string
+  description = "Bedrock model (or inference-profile) ID the chat Lambda calls."
+  default     = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+}
+
+variable "bedrock_model_arns" {
+  type        = list(string)
+  description = "ARNs the Lambda may invoke via bedrock:InvokeModel. Default ['*'] allows any model in the account."
+  default     = ["*"]
+}
+
+variable "lambda_memory_mb" {
+  type        = number
+  description = "Lambda memory in MB."
+  default     = 256
+}
+
+variable "lambda_timeout_seconds" {
+  type        = number
+  description = "Lambda timeout in seconds."
+  default     = 30
+}
