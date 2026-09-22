@@ -5,7 +5,7 @@ terraform {
     organization = "EML"
 
     workspaces {
-      name = "poetry-chat"
+      name = "poetry-chat-backend"
     }
   }
 
