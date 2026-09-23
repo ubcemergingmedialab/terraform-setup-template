@@ -56,3 +56,9 @@ variable "lambda_timeout_seconds" {
   description = "Lambda timeout in seconds."
   default     = 30
 }
+
+variable "chat_shared_secret" {
+  type        = string
+  description = "Shared secret the game sends in the x-chat-secret header (Function URL uses NONE auth). Ships with the build; rotate by changing this and re-applying."
+  sensitive   = true
+}

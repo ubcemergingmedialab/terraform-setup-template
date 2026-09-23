@@ -19,9 +19,14 @@
 //   { "error": "message" }   (with a non-200 status code)
 
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime'
+import crypto from 'node:crypto'
 
 const region = process.env.AWS_REGION ?? 'ca-central-1'
 const modelId = process.env.BEDROCK_MODEL_ID
+// When the Function URL uses NONE auth, the endpoint is public, so the handler
+// enforces a shared secret sent in the x-chat-secret header. If unset, the check
+// is skipped (only appropriate when the URL uses AWS_IAM auth instead).
+const sharedSecret = process.env.CHAT_SHARED_SECRET
 
 const bedrock = new BedrockRuntimeClient({ region })
 
@@ -53,6 +58,15 @@ function normalizeMessages(body) {
   return []
 }
 
+function timingSafeEqual(a, b) {
+  // Avoid leaking length/content via early-exit comparison.
+  if (typeof a !== 'string' || typeof b !== 'string') return false
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) return false
+  return crypto.timingSafeEqual(bufA, bufB)
+}
+
 export const handler = async (event) => {
   try {
     if (event.requestContext?.http?.method === 'OPTIONS') {
@@ -61,6 +75,15 @@ export const handler = async (event) => {
 
     if (!modelId) {
       return reply(500, { error: 'BEDROCK_MODEL_ID is not configured.' })
+    }
+
+    // Shared-secret gate for NONE-auth Function URLs. Headers are lower-cased by the
+    // Function URL. Skip the check only if no secret is configured.
+    if (sharedSecret) {
+      const provided = event.headers?.['x-chat-secret'] ?? event.headers?.['X-Chat-Secret']
+      if (!timingSafeEqual(provided ?? '', sharedSecret)) {
+        return reply(403, { error: 'Forbidden: missing or invalid chat secret.' })
+      }
     }
 
     // Function URL delivers the body as a (possibly base64-encoded) string.

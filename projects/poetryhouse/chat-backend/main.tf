@@ -19,8 +19,12 @@ module "chat_backend" {
   # BUFFERED matches the game's single-reply OnMessage contract.
   invoke_mode = "BUFFERED"
 
-  # Ship a scoped IAM key with the game for SigV4 signing.
-  create_invoker_user = true
+  # Public Function URL (NONE auth) gated by a shared secret the handler checks.
+  # IAM-user SigV4 auth proved unreliable for the scoped invoker on this account, so
+  # the game sends the secret in the x-chat-secret header instead of signing.
+  auth_type           = "NONE"
+  shared_secret       = var.chat_shared_secret
+  create_invoker_user = false
 
   tags = var.tags
 }

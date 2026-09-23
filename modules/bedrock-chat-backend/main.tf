@@ -1,7 +1,9 @@
 locals {
   # Merge the required Bedrock model id into any caller-supplied env vars.
+  # When auth_type is NONE, the handler enforces a shared secret read from CHAT_SHARED_SECRET.
   environment_variables = merge(
     { BEDROCK_MODEL_ID = var.bedrock_model_id },
+    var.shared_secret != "" ? { CHAT_SHARED_SECRET = var.shared_secret } : {},
     var.environment_variables,
   )
 }
@@ -94,15 +96,16 @@ resource "aws_lambda_function" "this" {
 
 resource "aws_lambda_function_url" "this" {
   function_name      = aws_lambda_function.this.function_name
-  authorization_type = "AWS_IAM"
+  authorization_type = var.auth_type
   invoke_mode        = var.invoke_mode
 
   cors {
     allow_credentials = false
-    allow_headers     = ["content-type"]
-    allow_methods     = ["POST"]
-    allow_origins     = var.cors_allow_origins
-    expose_headers    = []
+    # Allow the shared-secret header (used when auth_type = NONE) plus content-type.
+    allow_headers  = ["content-type", "x-chat-secret"]
+    allow_methods  = ["POST"]
+    allow_origins  = var.cors_allow_origins
+    expose_headers = []
   }
 }
 
@@ -133,9 +136,7 @@ resource "aws_iam_user_policy" "invoker" {
       Sid      = "InvokeChatFunctionUrl"
       Effect   = "Allow"
       Action   = "lambda:InvokeFunctionUrl"
-      # TEMP DIAGNOSTIC: wildcard resource to rule out an ARN-matching issue on the
-      # Function URL invoke path. Revert to aws_lambda_function.this.arn once diagnosed.
-      Resource = "*"
+      Resource = aws_lambda_function.this.arn
     }]
   })
 }

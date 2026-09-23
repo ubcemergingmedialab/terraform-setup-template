@@ -9,7 +9,7 @@ output "function_arn" {
 }
 
 output "function_url" {
-  description = "IAM-authenticated Function URL the client SigV4-signs and POSTs to."
+  description = "Function URL the client POSTs to. With auth_type=NONE, send the shared secret in the x-chat-secret header; with AWS_IAM, SigV4-sign."
   value       = aws_lambda_function_url.this.function_url
 }
 

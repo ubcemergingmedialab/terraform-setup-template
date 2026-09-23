@@ -2,24 +2,18 @@
 # Read the sensitive ones with: terraform output -raw <name>
 
 output "chat_function_url" {
-  description = "IAM-authenticated Function URL the game POSTs to (SigV4-signed). -> EndpointUrl"
+  description = "Public Function URL the game POSTs to. Send the shared secret in the x-chat-secret header. -> EndpointUrl"
   value       = module.chat_backend.function_url
 }
 
 output "aws_region" {
-  description = "Region used for SigV4 signing (service = lambda). -> Region"
+  description = "Region the backend runs in."
   value       = var.aws_region
 }
 
-output "chat_invoker_access_key_id" {
-  description = "Access key ID for the scoped invoke-only user. -> AccessKeyId"
-  value       = module.chat_backend.invoker_access_key_id
-  sensitive   = true
-}
-
-output "chat_invoker_secret_access_key" {
-  description = "Secret access key for the scoped invoke-only user. -> SecretAccessKey"
-  value       = module.chat_backend.invoker_secret_access_key
+output "chat_shared_secret" {
+  description = "Shared secret the game sends in the x-chat-secret header. -> SharedSecret"
+  value       = var.chat_shared_secret
   sensitive   = true
 }
 
