@@ -134,11 +134,11 @@ resource "aws_iam_user_policy" "invoker" {
       Effect   = "Allow"
       Action   = "lambda:InvokeFunctionUrl"
       Resource = aws_lambda_function.this.arn
-      Condition = {
-        StringEquals = {
-          "lambda:FunctionUrlAuthType" = "AWS_IAM"
-        }
-      }
+      # NOTE: no lambda:FunctionUrlAuthType condition. That context key is not reliably
+      # populated for the scoped invoker's signed requests, which made both this identity
+      # policy and the resource permission fail their condition -> 403 Forbidden. The
+      # Function URL's authorization_type = AWS_IAM already guarantees IAM-only access,
+      # so the condition is redundant.
     }]
   })
 }
@@ -150,12 +150,15 @@ resource "aws_iam_access_key" "invoker" {
 }
 
 # Resource-based permission allowing the scoped user to invoke the URL.
+# function_url_auth_type is intentionally omitted: setting it injects a
+# lambda:FunctionUrlAuthType = AWS_IAM condition that was not being satisfied for the
+# scoped invoker's signed requests, causing 403 Forbidden. The Function URL's own
+# authorization_type = AWS_IAM already enforces IAM auth, so the condition is redundant.
 resource "aws_lambda_permission" "invoker_url" {
   count = var.create_invoker_user ? 1 : 0
 
-  statement_id           = "AllowScopedUserFunctionUrlInvoke"
-  action                 = "lambda:InvokeFunctionUrl"
-  function_name          = aws_lambda_function.this.function_name
-  principal              = aws_iam_user.invoker[0].arn
-  function_url_auth_type = "AWS_IAM"
+  statement_id  = "AllowScopedUserFunctionUrlInvoke"
+  action        = "lambda:InvokeFunctionUrl"
+  function_name = aws_lambda_function.this.function_name
+  principal     = aws_iam_user.invoker[0].arn
 }
