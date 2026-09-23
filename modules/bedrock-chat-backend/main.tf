@@ -161,9 +161,12 @@ resource "aws_lambda_permission" "invoker_url" {
   function_url_auth_type = "AWS_IAM"
 }
 
-# Public invoke permission for NONE auth. Lambda always evaluates the resource-based
-# policy, so a NONE-auth Function URL still needs a statement granting public invoke
-# before it will accept requests. The handler enforces the shared secret from there.
+# Public invoke permissions for NONE auth. A Function URL invocation requires TWO
+# resource-policy grants (this matches what AWS's own console setup creates):
+#   1. lambda:InvokeFunctionUrl  (with FunctionUrlAuthType = NONE) — the URL front door
+#   2. lambda:InvokeFunction     (with InvokedViaFunctionUrl = true) — the actual invoke
+# Granting only #1 yields AccessDeniedException at invoke time. The handler enforces the
+# shared secret after the request passes these checks.
 resource "aws_lambda_permission" "public_url" {
   count = var.auth_type == "NONE" ? 1 : 0
 
@@ -172,4 +175,13 @@ resource "aws_lambda_permission" "public_url" {
   function_name          = aws_lambda_function.this.function_name
   principal              = "*"
   function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "public_url_invoke" {
+  count = var.auth_type == "NONE" ? 1 : 0
+
+  statement_id  = "FunctionURLAllowInvokeAction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.this.function_name
+  principal     = "*"
 }
