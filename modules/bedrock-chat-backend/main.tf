@@ -133,7 +133,9 @@ resource "aws_iam_user_policy" "invoker" {
       Sid      = "InvokeChatFunctionUrl"
       Effect   = "Allow"
       Action   = "lambda:InvokeFunctionUrl"
-      Resource = aws_lambda_function.this.arn
+      # TEMP DIAGNOSTIC: wildcard resource to rule out an ARN-matching issue on the
+      # Function URL invoke path. Revert to aws_lambda_function.this.arn once diagnosed.
+      Resource = "*"
     }]
   })
 }
