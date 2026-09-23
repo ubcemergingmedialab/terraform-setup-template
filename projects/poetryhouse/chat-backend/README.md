@@ -1,22 +1,32 @@
 # PoetryHouse — Chat Backend (Lambda → Bedrock)
 
 Replaces the EC2 "moot-api" OpenAI chat proxy for PoetryHouse's chat-completion
-path with a serverless Lambda that calls Amazon Bedrock. The game invokes an
-**IAM-authenticated** Lambda Function URL and SigV4-signs each request with a
-**scoped IAM user** whose access key ships with the packaged build.
+path with a serverless Lambda that calls Amazon Bedrock. The game invokes a
+**public Function URL (`NONE` auth)** and authenticates with a **shared secret**
+sent in the `x-chat-secret` header; the Lambda handler validates it.
 
-Only the **resistance text generation** path is migrated (the sentiment-analysis
-and NPC WebSockets are not exercised in the current game flow — see "Not migrated"
-below).
+> Why not IAM/SigV4? The scoped IAM *user* consistently returned 403 on
+> `lambda:InvokeFunctionUrl` for this account despite correct identity + resource
+> policies (and an `allowed` policy-simulator result). The shared-secret approach is
+> the reliable path for the shipped client.
+
+## Secret handling (VCS-driven / HCP)
+
+`chat_shared_secret` is declared in `variables.tf` with **no default** and is
+**never** committed. Provide it as a **sensitive Terraform variable in the HCP
+workspace** (`poetry-chat-backend` → Variables → add `chat_shared_secret`, mark
+Sensitive). The game reads the same value from `DefaultGame.ini` (in Perforce, not
+this repo). Do **not** put it in `terraform.auto.tfvars` — that file is committed.
 
 ## What this provisions
 
 - `aws_lambda_function.chat_backend` — Node.js 22 (arm64) function that calls
-  Bedrock `Converse` and returns the completion as plain text.
-- `aws_lambda_function_url.chat_backend` — `AWS_IAM` auth, `BUFFERED` invoke mode.
+  Bedrock `Converse`, validates the `x-chat-secret` header, and returns the
+  completion as plain text.
+- `aws_lambda_function_url.chat_backend` — `NONE` auth, `BUFFERED` invoke mode.
 - Lambda execution role with `bedrock:InvokeModel` + basic execution logging.
-- `aws_iam_user.chat_invoker` — a user that can do exactly one thing:
-  `lambda:InvokeFunctionUrl` on this function. Its access key is an output.
+- The scoped `aws_iam_user.chat_invoker` is **disabled** (`create_invoker_user =
+  false`); it's retained in the module for the optional `AWS_IAM` auth mode.
 
 ## Deploy
 

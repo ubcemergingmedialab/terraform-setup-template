@@ -73,8 +73,26 @@ variable "invoke_mode" {
 
 variable "create_invoker_user" {
   type        = bool
-  description = "Create a scoped IAM user (invoke-only) whose access key ships with the client app."
-  default     = true
+  description = "Create a scoped IAM user (invoke-only) whose access key ships with the client app. Only relevant when auth_type = AWS_IAM."
+  default     = false
+}
+
+variable "auth_type" {
+  type        = string
+  description = "Function URL auth: AWS_IAM (SigV4) or NONE (public; handler enforces a shared secret)."
+  default     = "NONE"
+
+  validation {
+    condition     = contains(["AWS_IAM", "NONE"], var.auth_type)
+    error_message = "auth_type must be AWS_IAM or NONE."
+  }
+}
+
+variable "shared_secret" {
+  type        = string
+  description = "Shared secret the handler requires in the x-chat-secret header when auth_type = NONE. Passed to the Lambda as CHAT_SHARED_SECRET. Leave empty to disable the check (not recommended for NONE)."
+  default     = ""
+  sensitive   = true
 }
 
 variable "cors_allow_origins" {
