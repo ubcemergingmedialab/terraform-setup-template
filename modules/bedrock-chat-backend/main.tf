@@ -160,3 +160,16 @@ resource "aws_lambda_permission" "invoker_url" {
   principal              = aws_iam_user.invoker[0].arn
   function_url_auth_type = "AWS_IAM"
 }
+
+# Public invoke permission for NONE auth. Lambda always evaluates the resource-based
+# policy, so a NONE-auth Function URL still needs a statement granting public invoke
+# before it will accept requests. The handler enforces the shared secret from there.
+resource "aws_lambda_permission" "public_url" {
+  count = var.auth_type == "NONE" ? 1 : 0
+
+  statement_id           = "AllowPublicFunctionUrlInvoke"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.this.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+}
