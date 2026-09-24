@@ -5,15 +5,25 @@ Replaces NursePractitioner's dependency on the EC2 WebSocket proxy
 services. Structure and auth mirror the proven `projects/poetryhouse` projects
 and reuse the permission shapes already used in `projects/ubc-eml/episode`.
 
+## Key design point: chat is consumed as audio
+
+In the game, the chat / agent path is **always** consumed as **streamed spoken
+audio** (the old DXL `[CSS]` flow: send text, get audio back) — the game never
+reads chat *text*. So the chat backend does **both** legs server-side:
+**Bedrock (text) → Polly (speech)**, and returns audio. The game makes **one**
+HTTP call and plays the result. Only speech-to-text stays a WebSocket.
+
 ## Subprojects (one HCP workspace each)
 
 | Folder | Replaces | Service | Endpoint | Auth | HCP workspace |
 |---|---|---|---|---|---|
-| `chat-backend/` | DXL `[CHT]`/`[CHS]`/`[CSS]` chat **and** the direct OpenAI scoring call | Lambda → Amazon Bedrock (`Converse`) | Lambda Function URL (HTTPS POST) | `x-chat-secret` shared secret | `ubc-eml-np-chat` |
+| `chat-backend/` | DXL `[CSS]` chat+audio (and the OpenAI scoring call) | Lambda → Bedrock `Converse` → Polly `SynthesizeSpeech` | Lambda Function URL (HTTPS POST, returns audio) | `x-chat-secret` shared secret | `ubc-eml-np-chat` |
 | `transcribe-proxy/` | DXL `[STT]` speech-to-text | Fargate WebSocket proxy → Amazon Transcribe Streaming | ALB WebSocket (`ws://`/`wss://`) | optional `?secret=` / `x-transcribe-secret` | `ubc-eml-np-transcribe` |
-| `polly/` | DXL `[TTS]`/`[CSS]` audio-back | Lambda → Amazon Polly (`SynthesizeSpeech`) | Lambda Function URL (HTTPS POST) | `x-tts-secret` shared secret | `ubc-eml-np-polly` |
+| `polly/` *(optional)* | standalone TTS, if anything outside the chat flow needs it | Lambda → Amazon Polly | Lambda Function URL (HTTPS POST) | `x-tts-secret` shared secret | `ubc-eml-np-polly` |
 
-Each subproject has its own README with deploy steps. Deploy independently.
+**`polly/` is optional.** The chat backend already synthesizes speech internally,
+so the main game flow does not need the standalone Polly project. Deploy it only
+if some other feature needs text-to-speech on its own.
 
 ## Conventions
 
@@ -21,30 +31,28 @@ Each subproject has its own README with deploy steps. Deploy independently.
   region `ca-central-1`. Resource names follow `${client}-${project}-${env}-*`.
 - Bedrock model: `global.anthropic.claude-sonnet-4-6` (global cross-region
   inference profile, enabled for this account; invokable from any region).
+- Polly voice: `Tiffany`, engine `neural` (the old DXL/OpenAI voice names like
+  `alloy`/`nova` do **not** exist in Polly).
 - **Secrets never go in `terraform.auto.tfvars`** (committed). Set
-  `chat_shared_secret`, `tts_shared_secret`, and the optional
-  `transcribe_shared_secret` as **sensitive HCP workspace variables**.
-
-## Secret management
-
-Generate one secret per backend and set it both in the HCP workspace and in the
-game's `DefaultGame.ini`. Rotate by changing the HCP value, re-applying, and
-re-pasting into `DefaultGame.ini`. The transcribe secret is optional; if you skip
-it, restrict `allowed_cidr_blocks` on the proxy instead.
+  `chat_shared_secret` (and, if used, `tts_shared_secret` /
+  `transcribe_shared_secret`) as **sensitive HCP workspace variables**.
 
 ---
 
 ## Game-side wiring (Unreal / NursePractitioner)
 
-The DXL plugin (`Plugins/DXL`) is Blueprint-driven; today the endpoint
-`wss://MOOT-API.UBC-DXL.CA:8911` is hardcoded in a Blueprint and `Authenticate`
-is a no-op. The migration touches Blueprints + `Config/DefaultGame.ini` and needs
-no C++ changes to the DXL plugin itself (Option A: reuse the DXL STT socket +
-VaRest for HTTP).
+The DXL plugin (`Plugins/DXL`) is Blueprint-driven. Today the endpoint
+`wss://MOOT-API.UBC-DXL.CA:8911` is hardcoded in a Blueprint. This migration
+touches Blueprints + `Config/DefaultGame.ini`; it needs no DXL C++ changes.
 
-### 1. Config indirection — `Config/DefaultGame.ini`
+**Current flow:** mic → STT DXL socket → transcript text → `SendString` on the
+CSS DXL socket → CSS socket streams audio back → `UAudioManager` plays it.
 
-Add a section and read these at runtime instead of hardcoding in Blueprints:
+**New flow:** mic → STT DXL socket (→ transcribe-proxy) → transcript text →
+**one VaRest POST** to the chat backend → audio (mp3) back → `UAudioManager`
+plays it. The CSS socket goes away; the STT socket stays.
+
+### 1. Config — `Config/DefaultGame.ini`
 
 ```ini
 [NursePractitioner.Bedrock]
@@ -52,9 +60,14 @@ Region=ca-central-1
 ChatEndpointUrl=https://<chat-fn-url>/
 ChatSharedSecret=<chat secret>
 TranscribeWebSocketUrl=ws://<alb-dns>        ; append ?secret=<value> if the proxy secret is enabled
-TtsEndpointUrl=https://<polly-fn-url>/
-TtsSharedSecret=<tts secret>
 ```
+
+`TtsEndpointUrl` / `TtsSharedSecret` are **only** needed if you deploy the
+optional standalone `polly/` project. They are not part of the main flow.
+
+Read these in Blueprints with **Get Config String** (the `UNurseUtilities`
+helper added for this), e.g. Section `NursePractitioner.Bedrock`, Key
+`ChatEndpointUrl`.
 
 Populate from Terraform outputs:
 
@@ -64,84 +77,90 @@ terraform output -raw chat_function_url      # -> ChatEndpointUrl
 terraform output -raw chat_shared_secret     # -> ChatSharedSecret
 # transcribe-proxy workspace
 terraform output -raw websocket_url          # -> TranscribeWebSocketUrl
-# polly workspace
-terraform output -raw polly_function_url     # -> TtsEndpointUrl
-terraform output -raw tts_shared_secret      # -> TtsSharedSecret
 ```
-
-`DefaultGame.ini` lives in Perforce (not this repo). The packaged build contains
-these secrets — treat the build as sensitive.
 
 ### 2. Speech-to-text — reuse the DXL WebSocket (`transcribe-proxy`)
 
-- Repoint the STT `UDXLWebsocket::Connect` call (in `BP_NetworkManager` / the
-  socket BP) from the MOOT endpoint to `TranscribeWebSocketUrl`. If the proxy
-  secret is enabled, connect to `…?secret=<value>` (Unreal's `IWebSocket` can't
-  set custom headers, so the query param is used).
-- Change the audio send path. The proxy expects **`[4-byte little-endian sample
-  rate][PCM16 mono]`** frames, ideally **16 kHz**. Today the game records 48 kHz
-  and sends a whole WAV blob via `SendBytes`. Options:
-  - **A1 (simplest):** keep record-then-send; resample the bounced WAV to 16 kHz
-    PCM16, strip the WAV header, prepend the 4-byte rate, and `SendBytes` once.
-  - **A2 (streaming):** tap the mic submix and stream 16 kHz PCM frames live.
-    Better latency, more work. Defer unless needed.
-- Responses now arrive on `OnDataReceived` as **JSON** `{"transcript","isPartial"}`
-  instead of raw text. Parse with JsonBlueprintUtilities; treat `isPartial=false`
-  as the finalized utterance (replaces the old `END[MessageCompleted]` signal).
+- Repoint the STT `UDXLWebsocket::Connect` from the MOOT endpoint to the ALB:
+  `ServerURL` = ALB DNS (host only), `Port` = `80`, `Protocol` = `WS`
+  (plain `ws://` today — no ACM cert). If the transcribe secret is enabled it
+  must ride on the URL as `?secret=<value>`; note `Connect` builds `ws://host:port`
+  with no query support, so either drop the transcribe secret (rely on
+  `allowed_cidr_blocks`) or add a `ConnectUrl(FullUrl)` overload to the plugin
+  (ask and I'll add it).
+- Send audio as raw **`[4-byte little-endian sample rate][PCM16 mono]`** frames,
+  16 kHz preferred. The proxy reads the 4-byte header and does **not** expect
+  DXL's `[STT]…~!~` framing — so send with `SendData(Data, true)` (raw bytes),
+  **not** `SendBytes` (which adds the prefix/delimiter). Resample the 48 kHz
+  bounced WAV to 16 kHz PCM16 first (A1), or stream live frames (A2, deferred).
+- Transcripts arrive on `OnDataReceived` as JSON `{"transcript","isPartial"}`.
+  Parse with JsonBlueprintUtilities; `isPartial=false` = finalized utterance
+  (replaces the old `END[MessageCompleted]`).
 
-### 3. Chat / agent — VaRest HTTP POST (`chat-backend`)
+### 3. Chat + voice — ONE VaRest POST (`chat-backend`)
 
-Replace the DXL `[CHT]`/`[CHS]`/`[CSS]` chat interactions with an HTTPS POST to
-`ChatEndpointUrl` (the project already uses VaRest for HTTP):
+Replace the DXL `[CSS]` send-text/get-audio round trip with a single VaRest
+request:
 
-- Method `POST`, `Content-Type: application/json`, header `x-chat-secret: <ChatSharedSecret>`.
-- Body: `{ "systemPrompt": "...", "messages": [ {"role":"user","text":"..."} ], "maxTokens":512, "temperature":0.7 }`.
-- Response: `{ "text": "...", "stopReason": "..." }`.
-- Streaming: the backend is `BUFFERED` (single reply), matching the game's
-  single-message consumption. Streaming (`RESPONSE_STREAM` + NDJSON) can be
-  enabled later in the module if partial-token UI is wanted.
+- **URL:** `ChatEndpointUrl`, **Verb:** POST — this is HTTPS, **not** the DXL
+  `Connect`/`SendString` path.
+- **Headers:** `Content-Type: application/json`, `x-chat-secret: <ChatSharedSecret>`.
+- **Body:**
+  ```json
+  { "systemPrompt": "<persona prompt>",
+    "messages": [ {"role":"user","text":"<transcript>"} ],
+    "maxTokens": 512, "temperature": 0.7,
+    "voiceId": "Tiffany", "outputFormat": "mp3" }
+  ```
+  (The old `SetPrompt`/`[RSP]` persona becomes `systemPrompt`; the old
+  `SetVoice`/`[RSV]` becomes `voiceId` — using a **Polly** voice name.)
+- **Response:** base64-encoded **mp3** (the spoken reply). Base64-decode the body,
+  hand the bytes to RuntimeAudioImporter, and `EnqueueSound` on the existing
+  `UAudioManager`. Playback is unchanged from today's CSS audio-chunk path.
+- Keep your `messages` history array for multi-turn if the game does that today.
 
-### 4. Scoring / assessment — repoint the existing OpenAI call
+### 4. Scoring / assessment (text mode)
 
-The scoring path currently POSTs directly to
-`https://api.openai.com/v1/chat/completions` using `Content/Assets/Keys/OpenAI.txt`.
-Point that same VaRest request at `ChatEndpointUrl`, drop the OpenAI bearer key,
-and send `x-chat-secret` + the body shape above. Once done, `OpenAI.txt` and the
-OpenAI dependency can be removed.
+Scoring currently uses `VaRestSubsystem` to POST directly to
+`https://api.openai.com/v1/chat/completions` with `Authorization: Bearer <key>`
+(key from `Content/Assets/Keys/OpenAI.txt`), and consumes the reply as **text**.
 
-### 5. Text-to-speech — VaRest HTTP POST (`polly`)
+Repoint it at `ChatEndpointUrl` in **text mode** — the handler returns JSON and
+skips Polly when the body includes `"format": "text"`:
 
-Replace the DXL audio-back path with a POST to `TtsEndpointUrl`:
+- **URL:** `ChatEndpointUrl`, **Verb:** POST
+- **Headers:** `Content-Type: application/json`, `x-chat-secret: <ChatSharedSecret>`
+  (remove the `Authorization: Bearer` header)
+- **Body:** `{ "format":"text", "systemPrompt":"<rubric prompt>",
+  "messages":[{"role":"user","text":"<answer to score>"}], "maxTokens":512,
+  "temperature":0.2 }`
+- **Response:** `{ "text":"<score>", "stopReason":"..." }` — read `text`
+  (instead of `choices[0].message.content`).
 
-- Method `POST`, `Content-Type: application/json`, header `x-tts-secret: <TtsSharedSecret>`.
-- Body: `{ "text": "words to speak", "voiceId": "Tiffany", "outputFormat": "mp3" }`.
-- Response: base64-encoded mp3. Base64-decode the body, then feed the bytes into
-  the existing `RuntimeAudioImporter` → `UAudioManager` queue — the playback path
-  is unchanged from today's CSS audio-chunk handling.
-- **Voice mapping**: the DXL `EDXLVoices` (alloy/echo/fable/onyx/nova/shimmer) are
-  OpenAI-specific and don't exist in Polly. Use Polly voices (e.g. `Tiffany`,
-  `Joanna`, `Matthew`, `Ruth`); optionally add `engine: "neural"`.
+Translate the body from OpenAI's shape (system role → `systemPrompt`, `content` →
+`text`), drop the `ReadAPIKeyFromFile("OpenAI.txt")` call, and delete
+`Content/Assets/Keys/OpenAI.txt` once verified.
 
 ---
 
 ## Verification checklist
 
-- [ ] `chat-backend` applied; POST with the secret returns a completion; wrong/no
-      secret returns 403.
+- [ ] `chat-backend` applied; POST with the secret returns base64 mp3 that plays
+      via `UAudioManager`; wrong/no secret returns 403.
 - [ ] `transcribe-proxy` image pushed and service healthy; DXL STT socket connects;
       16 kHz PCM frames round-trip to a `{"transcript"}` reply.
-- [ ] `polly` applied; POST returns base64 mp3 that imports and plays via
-      `UAudioManager`.
-- [ ] Scoring call repointed off `api.openai.com`; `OpenAI.txt` retired.
-- [ ] `NursePractitionerEditor Win64 Development` still compiles (no DXL C++
-      changes required for Option A).
+- [ ] Scoring repointed off `api.openai.com` to `ChatEndpointUrl` with
+      `"format":"text"`; returns the score as text; `OpenAI.txt` retired.
+- [ ] `NursePractitionerEditor Win64 Development` compiles.
 - [ ] EC2 MOOT-API dependency decommissioned.
 
 ## Not included by default
 
 - Live streaming STT (A2) — the scaffold assumes A1 (resample + single send).
-- Bedrock Knowledge Base / guardrails — episode has these; add later if the
-  patient chat needs retrieval or content filtering (the chat handler already
-  supports a KB retrieve path in the episode variant).
-- A Bedrock/Polly spend budget alarm — recommended so a leaked secret can't run
-  up an unbounded bill.
+- Streaming chat audio — the backend returns one buffered mp3 per reply, which
+  matches how `UAudioManager` queues whole sound waves.
+- A `ConnectUrl(FullUrl)` DXL overload — needed only if you keep the transcribe
+  secret (so the `?secret=` query can be passed).
+- Bedrock/Polly spend budget alarm — recommended.
+
+The chat handler's `"format":"text"` branch (for scoring) **is** included.
