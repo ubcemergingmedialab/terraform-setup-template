@@ -45,16 +45,46 @@ variable "bedrock_model_arns" {
   default     = ["*"]
 }
 
+variable "polly_voice_id" {
+  type        = string
+  description = "Default Amazon Polly VoiceId used to synthesize the chat reply (e.g. Tiffany, Joanna, Matthew, Ruth). Old DXL/OpenAI voice names do not exist in Polly."
+  default     = "Tiffany"
+}
+
+variable "polly_engine" {
+  type        = string
+  description = "Polly engine: standard, neural, long-form, or generative. Neural gives higher quality where the voice supports it."
+  default     = "neural"
+}
+
+variable "polly_output_format" {
+  type        = string
+  description = "Polly audio output format returned to the game (mp3, ogg_vorbis, pcm). mp3 is decoded by RuntimeAudioImporter on the Unreal side."
+  default     = "mp3"
+}
+
 variable "lambda_memory_mb" {
   type        = number
-  description = "Lambda memory in MB."
+  description = "Lambda memory in MB. The function waits on Bedrock then Polly, so this can stay modest."
   default     = 256
 }
 
 variable "lambda_timeout_seconds" {
   type        = number
-  description = "Lambda timeout in seconds."
-  default     = 30
+  description = "Lambda timeout in seconds. Needs headroom for a full completion plus speech synthesis."
+  default     = 60
+}
+
+variable "log_retention_days" {
+  type        = number
+  description = "CloudWatch log retention for the Lambda."
+  default     = 14
+}
+
+variable "cors_allow_origins" {
+  type        = list(string)
+  description = "Allowed origins for the Function URL CORS config."
+  default     = ["*"]
 }
 
 variable "chat_shared_secret" {
