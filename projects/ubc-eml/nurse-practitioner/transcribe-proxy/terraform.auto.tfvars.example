@@ -1,0 +1,30 @@
+# Copy this file to `terraform.auto.tfvars` and adjust as needed.
+# Do NOT put AWS credentials or secrets here. Set those (and the optional
+# transcribe_shared_secret) as sensitive HCP workspace variables instead.
+
+client_name  = "ubc-eml"
+project_name = "np-transcribe"
+environment  = "dev"
+aws_region   = "ca-central-1"
+
+tags = {
+  Owner = "emerging-media-lab"
+  Repo  = "NursePractitioner"
+}
+
+container_image_tag      = "latest"
+fargate_cpu              = 512
+fargate_memory_mb        = 1024
+transcribe_language_code = "en-US"
+allowed_cidr_blocks      = ["0.0.0.0/0"]
+
+enable_autoscaling       = true
+autoscaling_min_capacity = 0
+autoscaling_max_capacity = 3
+autoscaling_cpu_target   = 70
+
+log_retention_days        = 7
+enable_container_insights = false
+
+enable_https    = false
+certificate_arn = ""
