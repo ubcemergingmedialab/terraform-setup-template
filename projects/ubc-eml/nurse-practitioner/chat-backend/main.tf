@@ -11,6 +11,10 @@ locals {
     var.chat_shared_secret != "" ? { CHAT_SHARED_SECRET = var.chat_shared_secret } : {},
   )
 }
+import {
+  to = aws_cloudwatch_log_group.chat_lambda
+  id = "/aws/lambda/ubc-eml-np-chat-dev-chat-backend"
+}
 
 # ------------------------------------------------------------------------------
 # Combined chat + TTS backend.
