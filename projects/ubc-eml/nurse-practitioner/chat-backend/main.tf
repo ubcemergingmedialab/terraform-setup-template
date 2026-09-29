@@ -136,19 +136,36 @@ resource "aws_lambda_function_url" "chat_backend" {
   }
 }
 
-# Public invoke grant for the NONE-auth Function URL. This mirrors the WORKING
-# ubc-eml/episode chat backend EXACTLY: a single lambda:InvokeFunctionUrl grant to
-# "*" with function_url_auth_type = NONE, and NOTHING else.
+# Public invoke grants for the NONE-auth Function URL. This reproduces the WORKING
+# `episode-chat-backend` resource policy on this account EXACTLY — verified via
+# `aws lambda get-policy`. It needs BOTH statements:
 #
-# Do NOT add a second broad lambda:InvokeFunction grant here. The bedrock-chat-backend
-# module (used by poetryhouse) adds that second statement, but on this account it
-# causes the Function URL to 403 with {"Message":null} before the handler runs
-# (poetryhouse worked around Lambda-URL invoke issues with a websocket proxy).
-# Episode's single-permission setup is the confirmed-working pattern here.
+#   1. lambda:InvokeFunctionUrl, principal "*", condition FunctionUrlAuthType=NONE
+#      (the URL front door)
+#   2. lambda:InvokeFunction,    principal "*", condition InvokedViaFunctionUrl=true
+#      (the actual invoke, SCOPED to URL-originated calls)
+#
+# The critical detail: statement 2 MUST carry the `InvokedViaFunctionUrl = true`
+# condition, set via the `invoked_via_function_url = true` argument below. The
+# bedrock-chat-backend module (poetryhouse) grants an UNCONDITIONED
+# lambda:InvokeFunction to "*", which this account rejects -> 403 AccessDeniedException
+# at the URL layer (the function itself invokes fine directly).
 resource "aws_lambda_permission" "chat_url" {
-  statement_id           = "AllowPublicFunctionUrlInvoke"
+  statement_id           = "FunctionURLAllowPublicAccess"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.chat_backend.function_name
   principal              = "*"
   function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "chat_url_invoke" {
+  statement_id             = "FunctionURLAllowInvokeAction"
+  action                   = "lambda:InvokeFunction"
+  function_name            = aws_lambda_function.chat_backend.function_name
+  principal                = "*"
+  invoked_via_function_url = true
+  # invoked_via_function_url = true attaches the `lambda:InvokedViaFunctionUrl = true`
+  # condition, exactly matching episode-chat-backend's working resource policy.
+  # Do NOT drop this: an unconditioned InvokeFunction grant to "*" is what this
+  # account rejects (403 AccessDeniedException at the URL layer).
 }
