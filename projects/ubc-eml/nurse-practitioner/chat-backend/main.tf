@@ -136,21 +136,19 @@ resource "aws_lambda_function_url" "chat_backend" {
   }
 }
 
-# A NONE-auth Function URL invocation needs two resource-policy grants (matches
-# the bedrock-chat-backend module and AWS's own console setup):
-#   1. lambda:InvokeFunctionUrl (FunctionUrlAuthType = NONE) — the URL front door
-#   2. lambda:InvokeFunction    — the actual invoke
+# Public invoke grant for the NONE-auth Function URL. This mirrors the WORKING
+# ubc-eml/episode chat backend EXACTLY: a single lambda:InvokeFunctionUrl grant to
+# "*" with function_url_auth_type = NONE, and NOTHING else.
+#
+# Do NOT add a second broad lambda:InvokeFunction grant here. The bedrock-chat-backend
+# module (used by poetryhouse) adds that second statement, but on this account it
+# causes the Function URL to 403 with {"Message":null} before the handler runs
+# (poetryhouse worked around Lambda-URL invoke issues with a websocket proxy).
+# Episode's single-permission setup is the confirmed-working pattern here.
 resource "aws_lambda_permission" "chat_url" {
   statement_id           = "AllowPublicFunctionUrlInvoke"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.chat_backend.function_name
   principal              = "*"
   function_url_auth_type = "NONE"
-}
-
-resource "aws_lambda_permission" "chat_url_invoke" {
-  statement_id  = "FunctionURLAllowInvokeAction"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.chat_backend.function_name
-  principal     = "*"
 }
