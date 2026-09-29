@@ -136,21 +136,31 @@ resource "aws_lambda_function_url" "chat_backend" {
   }
 }
 
-# Public invoke grant for the NONE-auth Function URL. This matches the WORKING,
-# in-use `ubc-eml-episode-prod-chat-backend` TERRAFORM exactly: a SINGLE
-# lambda:InvokeFunctionUrl grant to "*" with function_url_auth_type = NONE.
+# Public invoke grants for the NONE-auth Function URL. On this account, invoking a
+# public Function URL requires BOTH:
+#   1. lambda:InvokeFunctionUrl (FunctionUrlAuthType = NONE) — the URL front door
+#   2. lambda:InvokeFunction    to "*"                       — the actual invoke
 #
-# Note: episode's LIVE resource policy also contains `FunctionURLAllowPublicAccess`
-# and a `FunctionURLAllowInvokeAction` statement (with the
-# lambda:InvokedViaFunctionUrl = true condition), but Terraform does NOT declare
-# those — AWS adds them automatically when a NONE-auth Function URL is created.
-# So declaring only this one statement is correct and sufficient; do not try to add
-# the InvokedViaFunctionUrl statement in Terraform (the older aws provider HCP
-# resolves here does not support `invoked_via_function_url`, and AWS provides it).
+# Statement 2 is REQUIRED here: with only statement 1, the URL returns
+# 403 AccessDeniedException (verified — the function invokes fine directly, and adding
+# statement 2 made the URL return 200). This was originally added manually via
+# `aws lambda add-permission`; it is now managed here to remove that drift.
+#
+# episode's live policy uses an `InvokedViaFunctionUrl = true` condition on statement 2,
+# which would require the aws provider's `invoked_via_function_url` argument (>= 5.72).
+# The provider HCP resolves for this workspace is older and rejects that argument, and
+# the unconditioned grant below is confirmed to work on this account, so we use it.
 resource "aws_lambda_permission" "chat_url" {
   statement_id           = "AllowPublicFunctionUrlInvoke"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.chat_backend.function_name
   principal              = "*"
   function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "chat_url_invoke" {
+  statement_id  = "FunctionURLAllowInvokeAction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.chat_backend.function_name
+  principal     = "*"
 }

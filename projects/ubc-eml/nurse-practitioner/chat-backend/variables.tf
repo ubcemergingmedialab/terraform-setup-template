@@ -47,14 +47,42 @@ variable "bedrock_model_arns" {
 
 variable "polly_voice_id" {
   type        = string
-  description = "Default Amazon Polly VoiceId used to synthesize the chat reply (e.g. Tiffany, Joanna, Matthew, Ruth). Old DXL/OpenAI voice names do not exist in Polly."
+  description = <<-EOT
+    Default Amazon Polly VoiceId used to synthesize the chat reply. The voice MUST
+    support `polly_engine` or synthesis fails with "This voice does not support the
+    selected engine". Old DXL/OpenAI voice names (alloy, nova, ...) do NOT exist in Polly.
+
+    Available en-US voices in ca-central-1 (verified via `aws polly describe-voices`):
+
+      generative (default engine here):
+        Joanna (F), Ruth (F), Salli (F), Stephen (M), Tiffany (F)
+
+      neural (faster, lower cost, steadier inflection):
+        Joanna (F), Ruth (F), Salli (F), Stephen (M), Danielle (F), Kimberly (F),
+        Kendra (F), Ivy (F), Gregory (M), Kevin (M), Matthew (M), Justin (M), Joey (M)
+
+    en-GB generative (for a British accent): Amy (F), Brian (M).
+
+    Note: Joanna, Ruth, Salli, and Stephen support BOTH generative and neural, so you
+    can switch `polly_engine` without changing the voice for those four.
+  EOT
   default     = "Tiffany"
 }
 
 variable "polly_engine" {
   type        = string
-  description = "Polly engine: standard, neural, long-form, or generative. Neural gives higher quality where the voice supports it."
-  default     = "neural"
+  description = <<-EOT
+    Polly engine. `generative` = most natural/expressive (default); `neural` = faster
+    synthesis, lower cost, steadier inflection on short/number-heavy lines. Must be
+    compatible with `polly_voice_id` (see that variable for the per-engine voice lists).
+    Tiffany is generative-only, which is why the default is generative.
+  EOT
+  default     = "generative"
+
+  validation {
+    condition     = contains(["standard", "neural", "long-form", "generative"], var.polly_engine)
+    error_message = "polly_engine must be one of: standard, neural, long-form, generative."
+  }
 }
 
 variable "polly_output_format" {
