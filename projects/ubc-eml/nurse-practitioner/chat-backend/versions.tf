@@ -11,10 +11,8 @@ terraform {
 
   required_providers {
     aws = {
-      source = "hashicorp/aws"
-      # >= 5.72 required for the `invoked_via_function_url` argument on
-      # aws_lambda_permission (added Nov 2024). Sibling projects resolve 5.100.
-      version = ">= 5.72, < 6.0"
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
     }
     archive = {
       source  = "hashicorp/archive"

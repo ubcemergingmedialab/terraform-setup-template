@@ -136,36 +136,21 @@ resource "aws_lambda_function_url" "chat_backend" {
   }
 }
 
-# Public invoke grants for the NONE-auth Function URL. This reproduces the WORKING
-# `episode-chat-backend` resource policy on this account EXACTLY — verified via
-# `aws lambda get-policy`. It needs BOTH statements:
+# Public invoke grant for the NONE-auth Function URL. This matches the WORKING,
+# in-use `ubc-eml-episode-prod-chat-backend` TERRAFORM exactly: a SINGLE
+# lambda:InvokeFunctionUrl grant to "*" with function_url_auth_type = NONE.
 #
-#   1. lambda:InvokeFunctionUrl, principal "*", condition FunctionUrlAuthType=NONE
-#      (the URL front door)
-#   2. lambda:InvokeFunction,    principal "*", condition InvokedViaFunctionUrl=true
-#      (the actual invoke, SCOPED to URL-originated calls)
-#
-# The critical detail: statement 2 MUST carry the `InvokedViaFunctionUrl = true`
-# condition, set via the `invoked_via_function_url = true` argument below. The
-# bedrock-chat-backend module (poetryhouse) grants an UNCONDITIONED
-# lambda:InvokeFunction to "*", which this account rejects -> 403 AccessDeniedException
-# at the URL layer (the function itself invokes fine directly).
+# Note: episode's LIVE resource policy also contains `FunctionURLAllowPublicAccess`
+# and a `FunctionURLAllowInvokeAction` statement (with the
+# lambda:InvokedViaFunctionUrl = true condition), but Terraform does NOT declare
+# those — AWS adds them automatically when a NONE-auth Function URL is created.
+# So declaring only this one statement is correct and sufficient; do not try to add
+# the InvokedViaFunctionUrl statement in Terraform (the older aws provider HCP
+# resolves here does not support `invoked_via_function_url`, and AWS provides it).
 resource "aws_lambda_permission" "chat_url" {
-  statement_id           = "FunctionURLAllowPublicAccess"
+  statement_id           = "AllowPublicFunctionUrlInvoke"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.chat_backend.function_name
   principal              = "*"
   function_url_auth_type = "NONE"
-}
-
-resource "aws_lambda_permission" "chat_url_invoke" {
-  statement_id             = "FunctionURLAllowInvokeAction"
-  action                   = "lambda:InvokeFunction"
-  function_name            = aws_lambda_function.chat_backend.function_name
-  principal                = "*"
-  invoked_via_function_url = true
-  # invoked_via_function_url = true attaches the `lambda:InvokedViaFunctionUrl = true`
-  # condition, exactly matching episode-chat-backend's working resource policy.
-  # Do NOT drop this: an unconditioned InvokeFunction grant to "*" is what this
-  # account rejects (403 AccessDeniedException at the URL layer).
 }
