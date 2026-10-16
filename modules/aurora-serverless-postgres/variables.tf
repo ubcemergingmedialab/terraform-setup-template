@@ -32,8 +32,8 @@ variable "master_username" {
 
 variable "engine_version" {
   type        = string
-  description = "Aurora PostgreSQL engine version."
-  default     = "16.6"
+  description = "Optional Aurora PostgreSQL engine version. Leave empty to use the region's current default."
+  default     = ""
 }
 
 variable "min_capacity" {
