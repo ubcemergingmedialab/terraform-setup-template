@@ -73,6 +73,10 @@
         "lambda:AddPermission",
         "lambda:RemovePermission",
         "lambda:GetPolicy",
+        "lambda:CreateFunctionUrlConfig",
+        "lambda:GetFunctionUrlConfig",
+        "lambda:UpdateFunctionUrlConfig",
+        "lambda:DeleteFunctionUrlConfig",
         "lambda:TagResource",
         "lambda:UntagResource",
         "lambda:ListTags"
@@ -87,9 +91,7 @@
         "apigateway:POST",
         "apigateway:PUT",
         "apigateway:PATCH",
-        "apigateway:DELETE",
-        "apigateway:TagResource",
-        "apigateway:UntagResource"
+        "apigateway:DELETE"
       ],
       "Resource": [
         "arn:aws:apigateway:REPLACE_AWS_REGION::/apis",

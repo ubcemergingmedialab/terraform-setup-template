@@ -1,0 +1,145 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TerraformReadIdentity",
+      "Effect": "Allow",
+      "Action": "sts:GetCallerIdentity",
+      "Resource": "*"
+    },
+    {
+      "Sid": "LambdaScoped",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:GetFunctionCodeSigningConfig",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:ListVersionsByFunction",
+        "lambda:PublishVersion",
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:GetPolicy",
+        "lambda:CreateFunctionUrlConfig",
+        "lambda:GetFunctionUrlConfig",
+        "lambda:UpdateFunctionUrlConfig",
+        "lambda:DeleteFunctionUrlConfig",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "lambda:ListTags"
+      ],
+      "Resource": [
+        "arn:aws:lambda:ca-central-1:940309384764:function:ubc-eml-virtual-soils-*",
+        "arn:aws:lambda:ca-central-1:940309384764:function:cofood-garden-capture-*",
+        "arn:aws:lambda:ca-central-1:940309384764:function:poetry-chat-dev-*"
+      ]
+    },
+    {
+      "Sid": "LogsDescribeAccount",
+      "Effect": "Allow",
+      "Action": "logs:DescribeLogGroups",
+      "Resource": "*"
+    },
+    {
+      "Sid": "LogsScoped",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:ListTagsForResource",
+        "logs:TagResource",
+        "logs:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:logs:ca-central-1:940309384764:log-group:/aws/lambda/ubc-eml-virtual-soils-*",
+        "arn:aws:logs:ca-central-1:940309384764:log-group:/aws/lambda/ubc-eml-virtual-soils-*:*",
+        "arn:aws:logs:ca-central-1:940309384764:log-group:/aws/lambda/cofood-garden-capture-*",
+        "arn:aws:logs:ca-central-1:940309384764:log-group:/aws/lambda/cofood-garden-capture-*:*",
+        "arn:aws:logs:ca-central-1:940309384764:log-group:/aws/lambda/poetry-chat-dev-*",
+        "arn:aws:logs:ca-central-1:940309384764:log-group:/aws/lambda/poetry-chat-dev-*:*"
+      ]
+    },
+    {
+      "Sid": "IAMRolesScoped",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:UpdateRole",
+        "iam:PutRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::940309384764:role/ubc-eml-virtual-soils-*",
+        "arn:aws:iam::940309384764:role/cofood-garden-capture-*",
+        "arn:aws:iam::940309384764:role/poetry-chat-dev-*"
+      ]
+    },
+    {
+      "Sid": "IAMPassRoleToLambda",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "arn:aws:iam::940309384764:role/ubc-eml-virtual-soils-*",
+        "arn:aws:iam::940309384764:role/cofood-garden-capture-*",
+        "arn:aws:iam::940309384764:role/poetry-chat-dev-*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "lambda.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "AttachLambdaBasicExecution",
+      "Effect": "Allow",
+      "Action": "iam:AttachRolePolicy",
+      "Resource": [
+        "arn:aws:iam::940309384764:role/ubc-eml-virtual-soils-*",
+        "arn:aws:iam::940309384764:role/cofood-garden-capture-*",
+        "arn:aws:iam::940309384764:role/poetry-chat-dev-*"
+      ],
+      "Condition": {
+        "ArnEquals": {
+          "iam:PolicyARN": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        }
+      }
+    },
+    {
+      "Sid": "IAMScopedInvokerUser",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateUser",
+        "iam:DeleteUser",
+        "iam:GetUser",
+        "iam:PutUserPolicy",
+        "iam:GetUserPolicy",
+        "iam:DeleteUserPolicy",
+        "iam:ListUserPolicies",
+        "iam:CreateAccessKey",
+        "iam:DeleteAccessKey",
+        "iam:ListAccessKeys",
+        "iam:TagUser",
+        "iam:UntagUser"
+      ],
+      "Resource": [
+        "arn:aws:iam::940309384764:user/ubc-eml-virtual-soils-*",
+        "arn:aws:iam::940309384764:user/cofood-garden-capture-*",
+        "arn:aws:iam::940309384764:user/app-clients/poetry-chat-dev-*"
+      ]
+    }
+  ]
+}

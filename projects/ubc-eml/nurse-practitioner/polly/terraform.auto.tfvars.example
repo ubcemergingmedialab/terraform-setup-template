@@ -1,0 +1,16 @@
+# Copy this file to `terraform.auto.tfvars` and adjust as needed.
+# Do NOT put AWS credentials or secrets here. Set those (and tts_shared_secret)
+# as sensitive HCP workspace variables instead.
+
+client_name  = "ubc-eml"
+project_name = "np-polly"
+environment  = "dev"
+aws_region   = "ca-central-1"
+
+tags = {
+  Owner = "emerging-media-lab"
+  Repo  = "NursePractitioner"
+}
+
+default_voice_id      = "Tiffany"
+default_output_format = "mp3"

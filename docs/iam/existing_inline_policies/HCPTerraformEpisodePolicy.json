@@ -1,0 +1,28 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "TerraformEpisodeInfra",
+			"Effect": "Allow",
+			"Action": [
+				"iam:*Role*",
+				"iam:*Policy*",
+				"iam:AttachRolePolicy",
+				"iam:DetachRolePolicy",
+				"iam:PassRole",
+				"iam:TagRole",
+				"iam:TagPolicy",
+				"s3:*",
+				"s3vectors:*",
+				"bedrock:*",
+				"bedrock-agent:*",
+				"lambda:*",
+				"logs:*",
+				"cognito-identity:*",
+				"transcribe:*",
+				"polly:*"
+			],
+			"Resource": "*"
+		}
+	]
+}

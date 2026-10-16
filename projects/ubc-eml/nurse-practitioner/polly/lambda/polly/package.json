@@ -1,0 +1,11 @@
+{
+  "name": "nurse-practitioner-polly",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-polly": "^3.1066.0"
+  }
+}

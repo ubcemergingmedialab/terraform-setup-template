@@ -1,0 +1,18 @@
+# Copy this file to `terraform.auto.tfvars` and adjust as needed.
+# Do NOT put AWS credentials or secrets here. Set those as sensitive
+# environment variables in the HCP workspace instead.
+
+client_name  = "ubc-eml"
+project_name = "np-chat"
+environment  = "dev"
+aws_region   = "ca-central-1"
+
+# Bedrock model the chat Lambda calls. Global inference profile works from any region.
+bedrock_model_id = "global.anthropic.claude-sonnet-4-6"
+
+tags = {
+  Owner = "emerging-media-lab"
+  Repo  = "NursePractitioner"
+}
+
+# chat_shared_secret is NOT set here — provide it as a sensitive HCP workspace variable.
