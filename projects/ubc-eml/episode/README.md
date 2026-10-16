@@ -2,54 +2,50 @@
 
 Terraform infrastructure for the Episode project.
 
-## Database boilerplate
+## EPISODE API and database
 
 Set `aws_region = "ca-central-1"` and enable `enable_episode_database`.
 Terraform creates the dedicated VPC, private subnets, route tables, Aurora
-cluster, and both database APIs. Aurora remains private. The Lambda controllers
-use the RDS Data API, so they do not need VPC attachment or database ingress
-rules.
+cluster and the consolidated EPISODE API. Aurora remains private. The Lambda
+controllers use the RDS Data API, so they do not need VPC attachment or database
+ingress rules.
 
 The VPC has no Internet Gateway or NAT Gateway. This is intentional: Aurora is
 accessed through the RDS Data API, and the Lambda functions remain outside the
-VPC. The two API modules create separate Lambda execution roles and attach
-CloudWatch logging plus Aurora Data API and Secrets Manager runtime policies.
+VPC. One API Gateway HTTP API routes public operations to `public.handler` and
+instructor operations to `authenticated.handler`. Each handler has its own
+Lambda execution role and CloudWatch log group.
 
-There are two deliberately separate APIs:
+The API routes are:
 
-	- `database_public_api_endpoint`: unauthenticated `GET /records` and
-		`GET /records/{id}`. This controller is read-only by route and handler.
-	- `database_authenticated_api_endpoint`: Cognito JWT-protected
-		`POST /admin/api/records`, `PUT /admin/api/records/{id}`, and
-		`DELETE /admin/api/records/{id}`. The handler receives the
-		verified subject at `requestContext.authorizer.jwt.claims.sub`.
+- Public/auth: `POST /auth/login`, `POST /auth/forgot-password`,
+	`POST /auth/confirm-password`, `GET /scenarios/{linkToken}`, and
+	`POST /attempts`.
+- Instructor: scenario management, scenario-link management, and analytics
+	under `/instructor/*`. These routes require a Cognito JWT at API Gateway.
 
-The handlers currently return `501 database_schema_pending`. They are wiring
-boilerplate only; SQL, tables, filtering, validation, and record-level access
-rules must wait for the approved schema specification.
+Apply `lambda/database-controller/schema.sql` to the Aurora database before
+using the API. The migration is intentionally not run by Lambda cold starts.
+The Lambda package uses `package-lock.json`; run `npm ci` in the controller
+directory before a deployment package is produced.
 
 Example public call:
 
 ```bash
-curl "$PUBLIC_DATABASE_API/records"
-curl "$PUBLIC_DATABASE_API/records/example-id"
+curl "$EPISODE_API/scenarios/<scenario-link-token>"
 ```
 
-Example authenticated calls:
+Example authenticated call:
 
 ```bash
-curl -X POST "$AUTH_DATABASE_API/admin/api/records" \
+curl -X GET "$EPISODE_API/instructor/scenarios" \
   -H "Authorization: Bearer <cognito-access-token>" \
-  -H "content-type: application/json" \
-  -d '{"replace-with":"approved-payload"}'
-
-curl -X PUT "$AUTH_DATABASE_API/admin/api/records/example-id" \
-  -H "Authorization: Bearer <cognito-access-token>" \
-  -H "content-type: application/json" \
-  -d '{"replace-with":"approved-payload"}'
 ```
 
-Equivalent browser calls use `fetch()` with the same URL and bearer header.
+The frontend should use the `episode_api_endpoint` output as
+`VITE_API_BASE_URL`. Its TypeScript service layer owns request composition and
+its Cognito UI guards, while API Gateway remains the authoritative protection
+for instructor routes.
 
 ## Deployment notes
 

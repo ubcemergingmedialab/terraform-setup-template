@@ -138,3 +138,21 @@ variable "database_api_source_dir" {
   description = "Path relative to this project containing the public and authenticated database handlers."
   default     = "lambda/database-controller"
 }
+
+variable "app_base_url" {
+  type        = string
+  description = "Public frontend base URL used when creating learner scenario links."
+  default     = "http://localhost:5173"
+}
+
+variable "api_throttling_rate_limit" {
+  type        = number
+  description = "Steady-state API Gateway requests per second across the EPISODE API."
+  default     = 50
+}
+
+variable "api_throttling_burst_limit" {
+  type        = number
+  description = "API Gateway burst request limit across the EPISODE API."
+  default     = 100
+}

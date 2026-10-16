@@ -78,34 +78,29 @@ output "database_secret_arn" {
   value       = var.enable_episode_database ? module.episode_database[0].secret_arn : null
 }
 
-output "database_public_api_endpoint" {
-  description = "Public read-only database API endpoint."
-  value       = var.enable_episode_database ? trimsuffix(module.database_public_api[0].api_endpoint, "/") : null
+output "episode_api_endpoint" {
+  description = "Consolidated EPISODE API Gateway endpoint."
+  value       = var.enable_episode_database ? trimsuffix(module.episode_api[0].api_endpoint, "/") : null
 }
 
-output "database_authenticated_api_endpoint" {
-  description = "Cognito-protected database mutation API endpoint."
-  value       = var.enable_episode_database ? trimsuffix(module.database_authenticated_api[0].api_endpoint, "/") : null
+output "episode_api_function_names" {
+  description = "Consolidated API Lambda function names keyed by public/authenticated handler."
+  value       = var.enable_episode_database ? module.episode_api[0].function_names : null
 }
 
-output "database_public_api_log_group" {
-  description = "CloudWatch log group for the public database controller."
-  value       = var.enable_episode_database ? module.database_public_api[0].log_group_name : null
+output "episode_api_function_arns" {
+  description = "Consolidated API Lambda ARNs keyed by public/authenticated handler."
+  value       = var.enable_episode_database ? module.episode_api[0].function_arns : null
 }
 
-output "database_authenticated_api_log_group" {
-  description = "CloudWatch log group for the authenticated database controller."
-  value       = var.enable_episode_database ? module.database_authenticated_api[0].log_group_name : null
+output "episode_api_log_groups" {
+  description = "Consolidated API Lambda log groups keyed by public/authenticated handler."
+  value       = var.enable_episode_database ? module.episode_api[0].log_group_names : null
 }
 
-output "database_public_lambda_execution_role_arn" {
-  description = "IAM role assumed by the public database Lambda."
-  value       = var.enable_episode_database ? module.database_public_api[0].execution_role_arn : null
-}
-
-output "database_authenticated_lambda_execution_role_arn" {
-  description = "IAM role assumed by the authenticated database Lambda."
-  value       = var.enable_episode_database ? module.database_authenticated_api[0].execution_role_arn : null
+output "episode_api_execution_role_arns" {
+  description = "Consolidated API Lambda execution roles keyed by public/authenticated handler."
+  value       = var.enable_episode_database ? module.episode_api[0].execution_role_arns : null
 }
 
 # --- Viewer static site (legacy output names kept for CI/scripts) ---

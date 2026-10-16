@@ -740,64 +740,67 @@ module "episode_database" {
   deletion_protection = var.database_deletion_protection
 }
 
-# Public reads and authenticated edits intentionally use different Lambda
-# functions and API Gateway APIs. This keeps the public controller read-only by
-# construction instead of relying on handler conditionals alone.
-module "database_public_api" {
+# The public and instructor handlers share one API Gateway surface. Route-level
+# authorization keeps learner endpoints open while Cognito protects instructor
+# endpoints.
+module "episode_api" {
   count  = var.enable_episode_database ? 1 : 0
   source = "../../../modules/episode-lambda-http-api"
 
-  name_prefix     = "${local.name_prefix}-database-public"
-  source_path     = "${path.module}/${var.database_api_source_dir}"
-  handler         = "public.handler"
-  runtime         = "nodejs24.x"
-  memory_mb       = 256
-  timeout_seconds = 30
+  name_prefix = "${local.name_prefix}-episode"
 
-  environment_variables = {
-    DATABASE_CLUSTER_ARN = module.episode_database[0].cluster_arn
-    DATABASE_SECRET_ARN  = module.episode_database[0].secret_arn
-    DATABASE_NAME        = module.episode_database[0].database_name
-    CONTROLLER_MODE      = "public-read-only"
+  functions = {
+    public = {
+      source_path     = "${path.module}/${var.database_api_source_dir}"
+      handler         = "public.handler"
+      runtime         = "nodejs24.x"
+      memory_mb       = 256
+      timeout_seconds = 30
+      environment_variables = {
+        DATABASE_CLUSTER_ARN = module.episode_database[0].cluster_arn
+        DATABASE_SECRET_ARN  = module.episode_database[0].secret_arn
+        DATABASE_NAME        = module.episode_database[0].database_name
+        COGNITO_CLIENT_ID    = module.cognito.user_pool_client_id
+        APP_BASE_URL         = trimsuffix(var.app_base_url, "/")
+      }
+    }
+    authenticated = {
+      source_path     = "${path.module}/${var.database_api_source_dir}"
+      handler         = "authenticated.handler"
+      runtime         = "nodejs24.x"
+      memory_mb       = 256
+      timeout_seconds = 30
+      environment_variables = {
+        DATABASE_CLUSTER_ARN = module.episode_database[0].cluster_arn
+        DATABASE_SECRET_ARN  = module.episode_database[0].secret_arn
+        DATABASE_NAME        = module.episode_database[0].database_name
+        APP_BASE_URL         = trimsuffix(var.app_base_url, "/")
+      }
+    }
   }
 
-  aurora_cluster_arns = [module.episode_database[0].cluster_arn]
-  aurora_secret_arns  = [module.episode_database[0].secret_arn]
-  cors_allow_origins  = var.cors_allow_origins
+  aurora_cluster_arns    = [module.episode_database[0].cluster_arn]
+  aurora_secret_arns     = [module.episode_database[0].secret_arn]
+  cognito_user_pool_arns = [module.cognito.user_pool_arn]
+  cognito_function_names = ["public"]
+  cognito_jwt_issuer     = module.cognito.jwt_issuer
+  cognito_audiences      = [module.cognito.user_pool_client_id]
+  cors_allow_origins     = var.cors_allow_origins
+  throttling_rate_limit  = var.api_throttling_rate_limit
+  throttling_burst_limit = var.api_throttling_burst_limit
 
   http_routes = [
-    { method = "GET", path = "/records", authorization_type = "NONE" },
-    { method = "GET", path = "/records/{id}", authorization_type = "NONE" },
-  ]
-}
-
-module "database_authenticated_api" {
-  count  = var.enable_episode_database ? 1 : 0
-  source = "../../../modules/episode-lambda-http-api"
-
-  name_prefix     = "${local.name_prefix}-database-authenticated"
-  source_path     = "${path.module}/${var.database_api_source_dir}"
-  handler         = "authenticated.handler"
-  runtime         = "nodejs24.x"
-  memory_mb       = 256
-  timeout_seconds = 30
-
-  environment_variables = {
-    DATABASE_CLUSTER_ARN = module.episode_database[0].cluster_arn
-    DATABASE_SECRET_ARN  = module.episode_database[0].secret_arn
-    DATABASE_NAME        = module.episode_database[0].database_name
-    CONTROLLER_MODE      = "authenticated-edit"
-  }
-
-  aurora_cluster_arns = [module.episode_database[0].cluster_arn]
-  aurora_secret_arns  = [module.episode_database[0].secret_arn]
-  cognito_jwt_issuer  = module.cognito.jwt_issuer
-  cognito_audiences   = [module.cognito.user_pool_client_id]
-  cors_allow_origins  = var.cors_allow_origins
-
-  http_routes = [
-    { method = "POST", path = "/admin/api/records", authorization_type = "JWT" },
-    { method = "PUT", path = "/admin/api/records/{id}", authorization_type = "JWT" },
-    { method = "DELETE", path = "/admin/api/records/{id}", authorization_type = "JWT" },
+    { method = "POST", path = "/auth/login", function_name = "public", authorization_type = "NONE" },
+    { method = "POST", path = "/auth/forgot-password", function_name = "public", authorization_type = "NONE" },
+    { method = "POST", path = "/auth/confirm-password", function_name = "public", authorization_type = "NONE" },
+    { method = "GET", path = "/scenarios/{linkToken}", function_name = "public", authorization_type = "NONE" },
+    { method = "POST", path = "/attempts", function_name = "public", authorization_type = "NONE" },
+    { method = "GET", path = "/instructor/scenarios", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "POST", path = "/instructor/scenarios", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "PATCH", path = "/instructor/scenarios/{id}", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "POST", path = "/instructor/scenario-links", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "POST", path = "/instructor/scenario-links/{id}/revoke", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "GET", path = "/instructor/scenario-links/{id}/analytics", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "GET", path = "/instructor/scenarios/{id}/analytics", function_name = "authenticated", authorization_type = "JWT" },
   ]
 }

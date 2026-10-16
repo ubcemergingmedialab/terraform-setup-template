@@ -5,6 +5,10 @@ locals {
 resource "aws_cognito_user_pool" "this" {
   name = "${var.name_prefix}-users"
 
+  admin_create_user_config {
+    allow_admin_create_user_only = true
+  }
+
   password_policy {
     minimum_length    = var.password_minimum_length
     require_lowercase = true
@@ -61,5 +65,20 @@ resource "aws_cognito_user_pool_client" "this" {
   explicit_auth_flows = [
     "ALLOW_REFRESH_TOKEN_AUTH",
     "ALLOW_USER_SRP_AUTH",
+    "ALLOW_USER_PASSWORD_AUTH",
   ]
+}
+
+resource "aws_cognito_user_group" "instructor" {
+  name         = "instructor"
+  user_pool_id = aws_cognito_user_pool.this.id
+  description  = "Users allowed to manage EPISODE scenarios and links."
+  precedence   = 10
+}
+
+resource "aws_cognito_user_group" "admin" {
+  name         = "admin"
+  user_pool_id = aws_cognito_user_pool.this.id
+  description  = "Users with EPISODE instructor access and cross-instructor analytics."
+  precedence   = 1
 }

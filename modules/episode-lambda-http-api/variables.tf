@@ -2,36 +2,23 @@ variable "name_prefix" {
   type = string
 }
 
-variable "runtime" {
-  type    = string
-  default = "nodejs20.x"
-}
-
-variable "handler" {
-  type    = string
-  default = "handler.handler"
-}
-
-variable "source_path" {
-  type = string
-}
-
-variable "memory_mb" {
-  type    = number
-  default = 256
-}
-
-variable "timeout_seconds" {
-  type    = number
-  default = 30
-}
-
-variable "environment_variables" {
-  type    = map(string)
-  default = {}
+variable "functions" {
+  type = map(object({
+    source_path           = string
+    handler               = string
+    runtime               = string
+    memory_mb             = number
+    timeout_seconds       = number
+    environment_variables = map(string)
+  }))
 }
 variable "http_routes" {
-  type = list(object({ method = string, path = string, authorization_type = optional(string, "NONE") }))
+  type = list(object({
+    method             = string
+    path               = string
+    function_name      = string
+    authorization_type = optional(string, "NONE")
+  }))
 }
 variable "cognito_jwt_issuer" {
   type    = string
@@ -71,4 +58,24 @@ variable "cors_allow_headers" {
 variable "log_retention_days" {
   type    = number
   default = 14
+}
+
+variable "cognito_user_pool_arns" {
+  type    = list(string)
+  default = []
+}
+
+variable "cognito_function_names" {
+  type    = set(string)
+  default = ["public"]
+}
+
+variable "throttling_rate_limit" {
+  type    = number
+  default = 50
+}
+
+variable "throttling_burst_limit" {
+  type    = number
+  default = 100
 }
