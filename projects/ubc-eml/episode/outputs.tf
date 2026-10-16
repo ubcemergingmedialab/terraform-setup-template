@@ -43,6 +43,66 @@ output "cognito_identity_pool_id" {
   value = aws_cognito_identity_pool.transcribe.id
 }
 
+output "cognito_user_pool_id" {
+  description = "Cognito user pool ID for admin authentication."
+  value       = module.cognito.user_pool_id
+}
+
+output "cognito_user_pool_client_id" {
+  description = "Cognito app client ID for the admin app."
+  value       = module.cognito.user_pool_client_id
+}
+
+output "cognito_hosted_ui_domain" {
+  description = "Cognito hosted UI domain for the admin app."
+  value       = module.cognito.hosted_ui_domain
+}
+
+output "database_cluster_identifier" {
+  description = "Aurora cluster identifier."
+  value       = var.enable_episode_database ? module.episode_database[0].cluster_identifier : null
+}
+
+output "database_vpc_id" {
+  description = "Terraform-managed private database VPC ID."
+  value       = var.enable_episode_database ? module.episode_network[0].vpc_id : null
+}
+
+output "database_private_subnet_ids" {
+  description = "Terraform-managed private database subnet IDs keyed by Availability Zone."
+  value       = var.enable_episode_database ? module.episode_network[0].private_subnet_ids : null
+}
+
+output "database_secret_arn" {
+  description = "Secrets Manager ARN used by the RDS Data API."
+  value       = var.enable_episode_database ? module.episode_database[0].secret_arn : null
+}
+
+output "episode_api_endpoint" {
+  description = "Consolidated EPISODE API Gateway endpoint."
+  value       = var.enable_episode_database ? trimsuffix(module.episode_api[0].api_endpoint, "/") : null
+}
+
+output "episode_api_function_names" {
+  description = "Consolidated API Lambda function names keyed by public/authenticated handler."
+  value       = var.enable_episode_database ? module.episode_api[0].function_names : null
+}
+
+output "episode_api_function_arns" {
+  description = "Consolidated API Lambda ARNs keyed by public/authenticated handler."
+  value       = var.enable_episode_database ? module.episode_api[0].function_arns : null
+}
+
+output "episode_api_log_groups" {
+  description = "Consolidated API Lambda log groups keyed by public/authenticated handler."
+  value       = var.enable_episode_database ? module.episode_api[0].log_group_names : null
+}
+
+output "episode_api_execution_role_arns" {
+  description = "Consolidated API Lambda execution roles keyed by public/authenticated handler."
+  value       = var.enable_episode_database ? module.episode_api[0].execution_role_arns : null
+}
+
 # --- Viewer static site (legacy output names kept for CI/scripts) ---
 
 output "viewer_site_url" {

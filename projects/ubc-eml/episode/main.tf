@@ -1,9 +1,29 @@
 locals {
-  name_prefix                  = "${var.client_name}-${var.project_name}-${var.environment}"
+  name_prefix                 = "${var.client_name}-${var.project_name}-${var.environment}"
   knowledgebase_source_bucket = "${local.name_prefix}-knowledgebase-${random_id.knowledgebase_source_bucket_suffix.hex}"
 }
 
 data "aws_caller_identity" "current" {}
+
+module "cognito" {
+  source = "../../../modules/episode-cognito-user-pool"
+
+  name_prefix             = local.name_prefix
+  callback_urls           = var.cognito_callback_urls
+  logout_urls             = var.cognito_logout_urls
+  hosted_ui_domain_prefix = var.cognito_hosted_ui_domain_prefix
+  password_minimum_length = var.cognito_password_minimum_length
+}
+
+module "episode_network" {
+  count  = var.enable_episode_database ? 1 : 0
+  source = "../../../modules/private-database-vpc"
+
+  name_prefix          = local.name_prefix
+  vpc_cidr             = var.database_vpc_cidr
+  availability_zones   = var.database_availability_zones
+  private_subnet_cidrs = var.database_private_subnet_cidrs
+}
 
 # ------------------------------------------------------------------------------
 # S3 source bucket
@@ -704,4 +724,83 @@ module "viewer_site" {
   bucket_name_suffix   = "site"
   spa_routing          = true
   cors_allowed_origins = var.cors_allow_origins
+}
+
+module "episode_database" {
+  count  = var.enable_episode_database ? 1 : 0
+  source = "../../../modules/aurora-serverless-postgres"
+
+  name_prefix         = local.name_prefix
+  vpc_id              = module.episode_network[0].vpc_id
+  private_subnet_ids  = module.episode_network[0].private_subnet_id_list
+  database_name       = var.database_name
+  engine_version      = var.database_engine_version
+  min_capacity        = var.database_min_capacity
+  max_capacity        = var.database_max_capacity
+  deletion_protection = var.database_deletion_protection
+}
+
+# The public and instructor handlers share one API Gateway surface. Route-level
+# authorization keeps learner endpoints open while Cognito protects instructor
+# endpoints.
+module "episode_api" {
+  count  = var.enable_episode_database ? 1 : 0
+  source = "../../../modules/episode-lambda-http-api"
+
+  name_prefix = "${local.name_prefix}-episode"
+
+  functions = {
+    public = {
+      source_path     = "${path.module}/${var.database_api_source_dir}"
+      handler         = "public.handler"
+      runtime         = "nodejs24.x"
+      memory_mb       = 256
+      timeout_seconds = 30
+      environment_variables = {
+        DATABASE_CLUSTER_ARN = module.episode_database[0].cluster_arn
+        DATABASE_SECRET_ARN  = module.episode_database[0].secret_arn
+        DATABASE_NAME        = module.episode_database[0].database_name
+        COGNITO_CLIENT_ID    = module.cognito.user_pool_client_id
+        APP_BASE_URL         = trimsuffix(var.app_base_url, "/")
+      }
+    }
+    authenticated = {
+      source_path     = "${path.module}/${var.database_api_source_dir}"
+      handler         = "authenticated.handler"
+      runtime         = "nodejs24.x"
+      memory_mb       = 256
+      timeout_seconds = 30
+      environment_variables = {
+        DATABASE_CLUSTER_ARN = module.episode_database[0].cluster_arn
+        DATABASE_SECRET_ARN  = module.episode_database[0].secret_arn
+        DATABASE_NAME        = module.episode_database[0].database_name
+        APP_BASE_URL         = trimsuffix(var.app_base_url, "/")
+      }
+    }
+  }
+
+  aurora_cluster_arns    = [module.episode_database[0].cluster_arn]
+  aurora_secret_arns     = [module.episode_database[0].secret_arn]
+  cognito_user_pool_arns = [module.cognito.user_pool_arn]
+  cognito_function_names = ["public"]
+  cognito_jwt_issuer     = module.cognito.jwt_issuer
+  cognito_audiences      = [module.cognito.user_pool_client_id]
+  cors_allow_origins     = var.cors_allow_origins
+  throttling_rate_limit  = var.api_throttling_rate_limit
+  throttling_burst_limit = var.api_throttling_burst_limit
+
+  http_routes = [
+    { method = "POST", path = "/auth/login", function_name = "public", authorization_type = "NONE" },
+    { method = "POST", path = "/auth/forgot-password", function_name = "public", authorization_type = "NONE" },
+    { method = "POST", path = "/auth/confirm-password", function_name = "public", authorization_type = "NONE" },
+    { method = "GET", path = "/scenarios/{linkToken}", function_name = "public", authorization_type = "NONE" },
+    { method = "POST", path = "/attempts", function_name = "public", authorization_type = "NONE" },
+    { method = "GET", path = "/instructor/scenarios", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "POST", path = "/instructor/scenarios", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "PATCH", path = "/instructor/scenarios/{id}", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "POST", path = "/instructor/scenario-links", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "POST", path = "/instructor/scenario-links/{id}/revoke", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "GET", path = "/instructor/scenario-links/{id}/analytics", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "GET", path = "/instructor/scenarios/{id}/analytics", function_name = "authenticated", authorization_type = "JWT" },
+  ]
 }

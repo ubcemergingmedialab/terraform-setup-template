@@ -1,0 +1,12 @@
+{
+  "name": "episode-database-controller",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check public.mjs && node --check authenticated.mjs && node --check shared.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1066.0",
+    "@aws-sdk/client-rds-data": "^3.1066.0"
+  }
+}
