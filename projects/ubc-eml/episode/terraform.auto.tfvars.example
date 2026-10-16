@@ -8,9 +8,26 @@
 client_name  = "example-client"
 project_name = "example-project"
 environment  = "dev"
-aws_region   = "us-west-2"
+aws_region   = "ca-central-1"
+
+# Set to ca-central-1 for the Canada-only Aurora deployment.
+# Terraform creates the VPC and private subnets for the database.
+enable_episode_database       = true
+database_vpc_cidr             = "10.42.0.0/16"
+database_availability_zones   = ["ca-central-1a", "ca-central-1b"]
+database_private_subnet_cidrs = ["10.42.1.0/24", "10.42.2.0/24"]
 
 tags = {
   Owner       = "media-lab"
   CostCenter  = "research-internal"
 }
+
+cognito_callback_urls = [
+  "http://localhost:5173/auth/callback",
+  "https://public.example.com/auth/callback"
+]
+
+cognito_logout_urls = [
+  "http://localhost:5173/",
+  "https://public.example.com/"
+]

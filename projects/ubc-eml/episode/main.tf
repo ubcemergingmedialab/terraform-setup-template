@@ -1,9 +1,29 @@
 locals {
-  name_prefix                  = "${var.client_name}-${var.project_name}-${var.environment}"
+  name_prefix                 = "${var.client_name}-${var.project_name}-${var.environment}"
   knowledgebase_source_bucket = "${local.name_prefix}-knowledgebase-${random_id.knowledgebase_source_bucket_suffix.hex}"
 }
 
 data "aws_caller_identity" "current" {}
+
+module "cognito" {
+  source = "../../../modules/episode-cognito-user-pool"
+
+  name_prefix             = local.name_prefix
+  callback_urls           = var.cognito_callback_urls
+  logout_urls             = var.cognito_logout_urls
+  hosted_ui_domain_prefix = var.cognito_hosted_ui_domain_prefix
+  password_minimum_length = var.cognito_password_minimum_length
+}
+
+module "episode_network" {
+  count  = var.enable_episode_database ? 1 : 0
+  source = "../../../modules/private-database-vpc"
+
+  name_prefix          = local.name_prefix
+  vpc_cidr             = var.database_vpc_cidr
+  availability_zones   = var.database_availability_zones
+  private_subnet_cidrs = var.database_private_subnet_cidrs
+}
 
 # ------------------------------------------------------------------------------
 # S3 source bucket
@@ -704,4 +724,80 @@ module "viewer_site" {
   bucket_name_suffix   = "site"
   spa_routing          = true
   cors_allowed_origins = var.cors_allow_origins
+}
+
+module "episode_database" {
+  count  = var.enable_episode_database ? 1 : 0
+  source = "../../../modules/aurora-serverless-postgres"
+
+  name_prefix         = local.name_prefix
+  vpc_id              = module.episode_network[0].vpc_id
+  private_subnet_ids  = module.episode_network[0].private_subnet_id_list
+  database_name       = var.database_name
+  engine_version      = var.database_engine_version
+  min_capacity        = var.database_min_capacity
+  max_capacity        = var.database_max_capacity
+  deletion_protection = var.database_deletion_protection
+}
+
+# Public reads and authenticated edits intentionally use different Lambda
+# functions and API Gateway APIs. This keeps the public controller read-only by
+# construction instead of relying on handler conditionals alone.
+module "database_public_api" {
+  count  = var.enable_episode_database ? 1 : 0
+  source = "../../../modules/episode-lambda-http-api"
+
+  name_prefix     = "${local.name_prefix}-database-public"
+  source_path     = "${path.module}/${var.database_api_source_dir}"
+  handler         = "public.handler"
+  runtime         = "nodejs24.x"
+  memory_mb       = 256
+  timeout_seconds = 30
+
+  environment_variables = {
+    DATABASE_CLUSTER_ARN = module.episode_database[0].cluster_arn
+    DATABASE_SECRET_ARN  = module.episode_database[0].secret_arn
+    DATABASE_NAME        = module.episode_database[0].database_name
+    CONTROLLER_MODE      = "public-read-only"
+  }
+
+  aurora_cluster_arns = [module.episode_database[0].cluster_arn]
+  aurora_secret_arns  = [module.episode_database[0].secret_arn]
+  cors_allow_origins  = var.cors_allow_origins
+
+  http_routes = [
+    { method = "GET", path = "/records", authorization_type = "NONE" },
+    { method = "GET", path = "/records/{id}", authorization_type = "NONE" },
+  ]
+}
+
+module "database_authenticated_api" {
+  count  = var.enable_episode_database ? 1 : 0
+  source = "../../../modules/episode-lambda-http-api"
+
+  name_prefix     = "${local.name_prefix}-database-authenticated"
+  source_path     = "${path.module}/${var.database_api_source_dir}"
+  handler         = "authenticated.handler"
+  runtime         = "nodejs24.x"
+  memory_mb       = 256
+  timeout_seconds = 30
+
+  environment_variables = {
+    DATABASE_CLUSTER_ARN = module.episode_database[0].cluster_arn
+    DATABASE_SECRET_ARN  = module.episode_database[0].secret_arn
+    DATABASE_NAME        = module.episode_database[0].database_name
+    CONTROLLER_MODE      = "authenticated-edit"
+  }
+
+  aurora_cluster_arns = [module.episode_database[0].cluster_arn]
+  aurora_secret_arns  = [module.episode_database[0].secret_arn]
+  cognito_jwt_issuer  = module.cognito.jwt_issuer
+  cognito_audiences   = [module.cognito.user_pool_client_id]
+  cors_allow_origins  = var.cors_allow_origins
+
+  http_routes = [
+    { method = "POST", path = "/admin/api/records", authorization_type = "JWT" },
+    { method = "PUT", path = "/admin/api/records/{id}", authorization_type = "JWT" },
+    { method = "DELETE", path = "/admin/api/records/{id}", authorization_type = "JWT" },
+  ]
 }
