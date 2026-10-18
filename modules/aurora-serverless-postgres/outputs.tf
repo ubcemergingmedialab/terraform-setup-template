@@ -13,6 +13,11 @@ output "secret_arn" {
   value       = aws_rds_cluster.this.master_user_secret[0].secret_arn
 }
 
+output "secret_kms_key_arn" {
+  description = "KMS key ARN encrypting the master credentials secret. Callers reading the secret need kms:Decrypt on this key."
+  value       = aws_rds_cluster.this.master_user_secret[0].kms_key_id
+}
+
 output "database_name" {
   description = "Initial database name."
   value       = aws_rds_cluster.this.database_name
