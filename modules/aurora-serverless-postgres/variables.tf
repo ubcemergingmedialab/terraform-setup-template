@@ -38,7 +38,7 @@ variable "engine_version" {
 
 variable "kms_key_id" {
   type        = string
-  description = "Optional KMS key ARN for Aurora storage encryption. Leave empty to use the account's default aws/rds key. Must be set explicitly (not left to the provider's implicit default) because manage_master_user_password combined with storage_encrypted causes AWS to reject a null KMS key id on cluster creation."
+  description = "Optional KMS key ARN, key ID, or alias (e.g. \"alias/my-key\") for Aurora storage encryption. Leave empty to use the account's default aws/rds key. Must be set explicitly (not left to the provider's implicit default) because manage_master_user_password combined with storage_encrypted causes AWS to reject a null KMS key id on cluster creation."
   default     = ""
 }
 
