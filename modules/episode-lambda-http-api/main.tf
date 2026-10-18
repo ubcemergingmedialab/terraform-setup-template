@@ -68,6 +68,23 @@ resource "aws_iam_role_policy" "aurora_data_api" {
   })
 }
 
+resource "aws_iam_role_policy" "aurora_secret_kms" {
+  for_each = length(var.aurora_secret_kms_key_arns) > 0 ? var.functions : {}
+  name     = "${var.name_prefix}-${each.key}-aurora-secret-kms"
+  role     = aws_iam_role.lambda[each.key].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = var.aurora_secret_kms_key_arns
+      },
+    ]
+  })
+}
+
 resource "aws_lambda_function" "this" {
   for_each         = var.functions
   function_name    = "${var.name_prefix}-${each.key}"

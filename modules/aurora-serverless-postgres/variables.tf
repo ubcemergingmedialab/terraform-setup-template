@@ -44,7 +44,7 @@ variable "kms_key_id" {
 
 variable "master_user_secret_kms_key_id" {
   type        = string
-  description = "Optional KMS key ARN encrypting the RDS-managed master password secret in Secrets Manager. Leave empty to use the account's default aws/secretsmanager key. Must be set explicitly for the same reason as kms_key_id: manage_master_user_password leaves this unresolved otherwise, and AWS rejects a null KMS key id on cluster creation."
+  description = "Optional KMS key ARN encrypting the RDS-managed master password secret in Secrets Manager. Leave empty to use a customer-managed key this module creates. The AWS-managed aws/secretsmanager key does not work here: its fixed policy only allows cross-service actions via Secrets Manager itself, and RDS creates this secret via an RDS-context KMS call, which that policy rejects."
   default     = ""
 }
 

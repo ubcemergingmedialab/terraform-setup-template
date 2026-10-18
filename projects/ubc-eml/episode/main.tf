@@ -779,15 +779,16 @@ module "episode_api" {
     }
   }
 
-  aurora_cluster_arns    = [module.episode_database[0].cluster_arn]
-  aurora_secret_arns     = [module.episode_database[0].secret_arn]
-  cognito_user_pool_arns = [module.cognito.user_pool_arn]
-  cognito_function_names = ["public"]
-  cognito_jwt_issuer     = module.cognito.jwt_issuer
-  cognito_audiences      = [module.cognito.user_pool_client_id]
-  cors_allow_origins     = var.cors_allow_origins
-  throttling_rate_limit  = var.api_throttling_rate_limit
-  throttling_burst_limit = var.api_throttling_burst_limit
+  aurora_cluster_arns        = [module.episode_database[0].cluster_arn]
+  aurora_secret_arns         = [module.episode_database[0].secret_arn]
+  aurora_secret_kms_key_arns = [module.episode_database[0].secret_kms_key_arn]
+  cognito_user_pool_arns     = [module.cognito.user_pool_arn]
+  cognito_function_names     = ["public"]
+  cognito_jwt_issuer         = module.cognito.jwt_issuer
+  cognito_audiences          = [module.cognito.user_pool_client_id]
+  cors_allow_origins         = var.cors_allow_origins
+  throttling_rate_limit      = var.api_throttling_rate_limit
+  throttling_burst_limit     = var.api_throttling_burst_limit
 
   http_routes = [
     { method = "POST", path = "/auth/login", function_name = "public", authorization_type = "NONE" },

@@ -40,6 +40,12 @@ variable "aurora_secret_arns" {
   default = []
 }
 
+variable "aurora_secret_kms_key_arns" {
+  type        = list(string)
+  description = "KMS key ARNs encrypting aurora_secret_arns. Required when the secret uses a customer-managed key, since such keys delegate entirely to IAM and grant no implicit decrypt access the way AWS-managed keys do."
+  default     = []
+}
+
 variable "cors_allow_origins" {
   type    = list(string)
   default = ["*"]
