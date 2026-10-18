@@ -63,6 +63,7 @@ resource "aws_rds_cluster" "this" {
   backup_retention_period         = var.backup_retention_period
   deletion_protection             = var.deletion_protection
   skip_final_snapshot             = var.skip_final_snapshot
+  final_snapshot_identifier       = var.skip_final_snapshot ? null : "${var.name_prefix}-aurora-final"
   storage_encrypted               = true
   kms_key_id                      = var.kms_key_id != "" ? var.kms_key_id : "arn:aws:kms:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:alias/aws/rds"
   copy_tags_to_snapshot           = true
