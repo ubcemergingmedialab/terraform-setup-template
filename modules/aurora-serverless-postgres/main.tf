@@ -1,3 +1,6 @@
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 resource "aws_db_subnet_group" "this" {
   name       = "${var.name_prefix}-aurora"
   subnet_ids = var.private_subnet_ids
@@ -31,7 +34,7 @@ resource "aws_rds_cluster" "this" {
   deletion_protection             = var.deletion_protection
   skip_final_snapshot             = var.skip_final_snapshot
   storage_encrypted               = true
-  kms_key_id                      = var.kms_key_id != "" ? var.kms_key_id : "alias/aws/rds"
+  kms_key_id                      = var.kms_key_id != "" ? var.kms_key_id : "arn:aws:kms:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:alias/aws/rds"
   copy_tags_to_snapshot           = true
   enabled_cloudwatch_logs_exports = var.log_exports
   enable_http_endpoint            = true
