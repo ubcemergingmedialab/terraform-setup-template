@@ -64,7 +64,6 @@ async function listScenarios(instructorId) {
 
 async function createScenario(instructorId, body) {
   const title = requireString(body.title, 'title', { max: 256 })
-  const systemPrompt = requireString(body.systemPrompt, 'systemPrompt')
   const patientId = requireUuid(body.patientId, 'patientId')
   if (typeof body.private !== 'boolean') throw new ApiError(400, 'VALIDATION_ERROR', '"private" must be a boolean.')
   if (!Array.isArray(body.medicationOrders) || body.medicationOrders.length === 0) {
@@ -74,8 +73,12 @@ async function createScenario(instructorId, body) {
   const created = await transaction(async (transactionId) => {
     const patient = records(await execute('SELECT id FROM patient WHERE id = :id', [['id', patientId]], transactionId))[0]
     if (!patient) throw new ApiError(404, 'NOT_FOUND', 'Patient not found.')
-    await execute(`INSERT INTO scenario (id, created_by, title, private, system_prompt, emotive_state, patient_id) VALUES (:id, :created_by, :title, :private, :system_prompt, :emotive_state, :patient_id)`, [
-      ['id', scenarioId], ['created_by', instructorId], ['title', title], ['private', body.private], ['system_prompt', systemPrompt], ['emotive_state', body.emotiveState ?? null], ['patient_id', patientId],
+    await execute(`INSERT INTO scenario (id, created_by, title, summary, private, current_issue_name, current_issue, patient_knowledge, teaching_prompts, appended_patient_info, emotive_state, patient_id)
+      VALUES (:id, :created_by, :title, :summary, :private, :current_issue_name, :current_issue, :patient_knowledge, :teaching_prompts, :appended_patient_info, :emotive_state, :patient_id)`, [
+      ['id', scenarioId], ['created_by', instructorId], ['title', title], ['summary', body.summary ?? null], ['private', body.private],
+      ['current_issue_name', body.currentIssueName ?? null], ['current_issue', body.currentIssue ?? null],
+      ['patient_knowledge', body.patientKnowledge ?? null], ['teaching_prompts', body.teachingPrompts ?? null],
+      ['appended_patient_info', body.appendedPatientInfo ?? null], ['emotive_state', body.emotiveState ?? null], ['patient_id', patientId],
     ], transactionId)
     for (const order of body.medicationOrders) {
       await insertMedicationOrder(transactionId, scenarioId, order)
@@ -85,13 +88,13 @@ async function createScenario(instructorId, body) {
     }
     return scenarioId
   })
-  const row = records(await execute('SELECT id, created_by, title, private, system_prompt, emotive_state, patient_id, created_at, updated_at FROM scenario WHERE id = :id', [['id', created]]))[0]
+  const row = records(await execute('SELECT id, created_by, title, summary, private, current_issue_name, current_issue, patient_knowledge, teaching_prompts, appended_patient_info, emotive_state, patient_id, created_at, updated_at FROM scenario WHERE id = :id', [['id', created]]))[0]
   return ok(formatScenario(row), 201)
 }
 
 async function updateScenario(instructorId, rawId, body) {
   const id = requireUuid(rawId, 'id')
-  const allowed = ['title', 'private', 'systemPrompt', 'emotiveState', 'patientId']
+  const allowed = ['title', 'summary', 'private', 'currentIssueName', 'currentIssue', 'patientKnowledge', 'teachingPrompts', 'appendedPatientInfo', 'emotiveState', 'patientId']
   if (!Object.keys(body).some((key) => allowed.includes(key))) throw new ApiError(400, 'VALIDATION_ERROR', 'At least one update field is required.')
   const owner = records(await execute('SELECT created_by FROM scenario WHERE id = :id', [['id', id]]))[0]
   if (!owner) throw new ApiError(404, 'NOT_FOUND', 'Scenario not found.')
@@ -100,12 +103,17 @@ async function updateScenario(instructorId, rawId, body) {
   const sets = []
   if ('title' in body) { sets.push('title = :title'); values.push(['title', requireString(body.title, 'title', { max: 256 })]) }
   if ('private' in body) { if (typeof body.private !== 'boolean') throw new ApiError(400, 'VALIDATION_ERROR', '"private" must be a boolean.'); sets.push('private = :private'); values.push(['private', body.private]) }
-  if ('systemPrompt' in body) { sets.push('system_prompt = :system_prompt'); values.push(['system_prompt', requireString(body.systemPrompt, 'systemPrompt')]) }
+  if ('summary' in body) { sets.push('summary = :summary'); values.push(['summary', body.summary ?? null]) }
+  if ('currentIssueName' in body) { sets.push('current_issue_name = :current_issue_name'); values.push(['current_issue_name', body.currentIssueName ?? null]) }
+  if ('currentIssue' in body) { sets.push('current_issue = :current_issue'); values.push(['current_issue', body.currentIssue ?? null]) }
+  if ('patientKnowledge' in body) { sets.push('patient_knowledge = :patient_knowledge'); values.push(['patient_knowledge', body.patientKnowledge ?? null]) }
+  if ('teachingPrompts' in body) { sets.push('teaching_prompts = :teaching_prompts'); values.push(['teaching_prompts', body.teachingPrompts ?? null]) }
+  if ('appendedPatientInfo' in body) { sets.push('appended_patient_info = :appended_patient_info'); values.push(['appended_patient_info', body.appendedPatientInfo ?? null]) }
   if ('emotiveState' in body) { sets.push('emotive_state = :emotive_state'); values.push(['emotive_state', body.emotiveState ?? null]) }
   if ('patientId' in body) { sets.push('patient_id = :patient_id'); values.push(['patient_id', requireUuid(body.patientId, 'patientId')]) }
   sets.push('updated_at = now()')
   await execute(`UPDATE scenario SET ${sets.join(', ')} WHERE id = :id AND created_by = :instructor_id`, values)
-  return ok(formatScenario(records(await execute('SELECT id, created_by, title, private, system_prompt, emotive_state, patient_id, created_at, updated_at FROM scenario WHERE id = :id', [['id', id]]))[0]))
+  return ok(formatScenario(records(await execute('SELECT id, created_by, title, summary, private, current_issue_name, current_issue, patient_knowledge, teaching_prompts, appended_patient_info, emotive_state, patient_id, created_at, updated_at FROM scenario WHERE id = :id', [['id', id]]))[0]))
 }
 
 async function createScenarioLink(instructorId, body) {
@@ -177,7 +185,22 @@ function formatScenarioSummary(row) {
 }
 
 function formatScenario(row) {
-  return { id: row.id, createdBy: row.created_by, title: row.title, private: row.private, systemPrompt: row.system_prompt, emotiveState: row.emotive_state, patientId: row.patient_id, createdAt: row.created_at, updatedAt: row.updated_at }
+  return {
+    id: row.id,
+    createdBy: row.created_by,
+    title: row.title,
+    summary: row.summary,
+    private: row.private,
+    currentIssueName: row.current_issue_name,
+    currentIssue: row.current_issue,
+    patientKnowledge: row.patient_knowledge,
+    teachingPrompts: row.teaching_prompts,
+    appendedPatientInfo: row.appended_patient_info,
+    emotiveState: row.emotive_state,
+    patientId: row.patient_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
 }
 
 function formatLink(row) {
