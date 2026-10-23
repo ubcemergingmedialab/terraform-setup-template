@@ -42,6 +42,55 @@ curl -X GET "$EPISODE_API/instructor/scenarios" \
   -H "Authorization: Bearer <cognito-access-token>" \
 ```
 
+### Create a test instructor
+
+After apply, get `cognito_user_pool_id`, `cognito_user_pool_client_id`, and
+`episode_api_endpoint` from HCP Terraform. From PowerShell, run:
+
+```powershell
+.\scripts\create-cognito-user.ps1 `
+	-UserPoolId "<cognito_user_pool_id>" `
+	-Email "admin@example.com" `
+	-Group admin
+```
+
+The script prompts for a permanent password, creates the user without sending
+a welcome email, and adds the user to the selected Cognito group. The first
+successful authenticated API request automatically creates the matching
+`instructor` row using the Cognito user's `sub` claim.
+
+### Test with Postman
+
+Create a Postman environment with `region`, `client_id`, `email`, `password`,
+and `api_url`. Add a request named `Login`:
+
+- `POST https://cognito-idp.{{region}}.amazonaws.com/`
+- Header `Content-Type: application/x-amz-json-1.1`
+- Header `X-Amz-Target: AWSCognitoIdentityProviderService.InitiateAuth`
+- Raw JSON body:
+
+```json
+{
+	"AuthFlow": "USER_PASSWORD_AUTH",
+	"ClientId": "{{client_id}}",
+	"AuthParameters": {
+		"USERNAME": "{{email}}",
+		"PASSWORD": "{{password}}"
+	}
+}
+```
+
+In the `Tests` tab, save the access token:
+
+```javascript
+pm.environment.set("access_token", pm.response.json().AuthenticationResult.AccessToken);
+```
+
+Then create `GET {{api_url}}/instructor/scenarios` with an Authorization type
+of `Bearer Token` and token `{{access_token}}`. A successful empty database
+returns `{ "scenarios": [] }`. A request without the bearer token should return
+`401 Unauthorized`.
+
 The frontend should use the `episode_api_endpoint` output as
 `VITE_API_BASE_URL`. Its TypeScript service layer owns request composition and
 its Cognito UI guards, while API Gateway remains the authoritative protection
