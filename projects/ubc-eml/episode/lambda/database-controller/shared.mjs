@@ -39,7 +39,8 @@ export function requireString(value, field, { min = 1, max = 10000 } = {}) {
 
 export function requireUuid(value, field) {
   const uuid = requireString(value, field)
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid)) {
+  const matchesUuidShape = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)
+  if (!matchesUuidShape) {
     throw new ApiError(400, 'VALIDATION_ERROR', `"${field}" must be a UUID.`)
   }
   return uuid
@@ -89,11 +90,13 @@ export function getClaims(event) {
 
 export function requireInstructorRole(claims) {
   const rawGroups = claims['cognito:groups']
-  const groups = Array.isArray(rawGroups)
-    ? rawGroups
-    : typeof rawGroups === 'string'
-      ? rawGroups.split(/[\s,]+/).filter(Boolean)
-      : []
+  let groups = []
+  if (Array.isArray(rawGroups)) {
+    groups = rawGroups
+  } else if (typeof rawGroups === 'string') {
+    const normalizedGroups = rawGroups.trim().replace(/^\[|\]$/g, '')
+    groups = normalizedGroups.split(/[\s,]+/).map((group) => group.replace(/^['"]|['"]$/g, '')).filter(Boolean)
+  }
   const isAdmin = groups.includes('admin')
   const isInstructor = isAdmin || groups.includes('instructor')
   if (!isInstructor) throw new ApiError(403, 'FORBIDDEN', 'Instructor access is required.')
@@ -118,6 +121,10 @@ function parameter(name, value) {
   if (value === null || value === undefined) return { name, value: { isNull: true } }
   if (typeof value === 'boolean') return { name, value: { booleanValue: value } }
   if (typeof value === 'number') return { name, value: Number.isInteger(value) ? { longValue: value } : { doubleValue: value } }
+  if (typeof value === 'object') return { name, value: { stringValue: JSON.stringify(value) }, typeHint: 'JSON' }
+  if (typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+    return { name, value: { stringValue: value }, typeHint: 'UUID' }
+  }
   return { name, value: { stringValue: String(value) } }
 }
 

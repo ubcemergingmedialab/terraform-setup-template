@@ -5,6 +5,11 @@ locals {
 
 data "aws_caller_identity" "current" {}
 
+data "aws_rds_cluster" "existing_episode" {
+  count              = var.enable_episode_database ? 1 : 0
+  cluster_identifier = "${local.name_prefix}-aurora"
+}
+
 module "cognito" {
   source = "../../../modules/episode-cognito-user-pool"
 
@@ -734,6 +739,7 @@ module "episode_database" {
   vpc_id              = module.episode_network[0].vpc_id
   private_subnet_ids  = module.episode_network[0].private_subnet_id_list
   database_name       = var.database_name
+  kms_key_id          = data.aws_rds_cluster.existing_episode[0].kms_key_id
   engine_version      = var.database_engine_version
   min_capacity        = var.database_min_capacity
   max_capacity        = var.database_max_capacity

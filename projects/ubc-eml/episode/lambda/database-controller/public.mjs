@@ -96,7 +96,9 @@ async function confirmPassword(body) {
 
 async function loadScenario(token) {
   const result = records(await execute(`
-    SELECT s.id, s.title, s.system_prompt, s.emotive_state
+    SELECT s.id, s.title, s.summary, s.current_issue_name, s.current_issue,
+      s.patient_knowledge, s.teaching_prompts, s.appended_patient_info,
+      s.emotive_state, s.patient_id
     FROM scenario_link sl JOIN scenario s ON s.id = sl.scenario_id
     WHERE sl.token_hash = :token_hash AND sl.revoked_at IS NULL
       AND (sl.expires_at IS NULL OR sl.expires_at >= now())
@@ -118,7 +120,12 @@ async function loadScenario(token) {
   return ok({
     id: scenario.id,
     title: scenario.title,
-    systemPrompt: scenario.system_prompt,
+    summary: scenario.summary,
+    currentIssueName: scenario.current_issue_name,
+    currentIssue: scenario.current_issue,
+    patientKnowledge: scenario.patient_knowledge,
+    teachingPrompts: scenario.teaching_prompts,
+    appendedPatientInfo: scenario.appended_patient_info,
     emotiveState: scenario.emotive_state,
     patient: {
       id: patient.id,
@@ -127,9 +134,6 @@ async function loadScenario(token) {
       dateOfBirth: patient.date_of_birth,
       gender: patient.gender,
       allergies: patient.allergies,
-      relevantHistory: patient.relevant_history,
-      currentIssue: patient.current_issue,
-      extraDetails: patient.extra_details,
     },
     medicationTypes: medicationTypes.map((item) => ({ id: item.id, scenarioId: item.scenario_id, name: item.name, qrCode: item.qr_code })),
     medicationOrders: medicationOrders.map((item) => ({
