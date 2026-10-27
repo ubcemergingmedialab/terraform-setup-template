@@ -9,7 +9,9 @@ environment  = "prod"
 aws_region   = "ca-central-1"
 
 # Chat
-bedrock_model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+# Claude Haiku 5.5. Served via a cross-Region inference profile; if the bare base
+# ID is rejected on Converse from ca-central-1, switch to "global.anthropic.claude-haiku-5-5".
+bedrock_model_id = "anthropic.claude-haiku-5-5"
 
 # Text-to-speech
 polly_default_voice_id      = "Ruth"

@@ -45,8 +45,8 @@ variable "chat_shared_secret" {
 
 variable "bedrock_model_id" {
   type        = string
-  description = "Bedrock model (or inference-profile) ID the chat Lambda calls."
-  default     = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  description = "Bedrock model (or inference-profile) ID the chat Lambda calls. Claude Haiku 5.5 is served via a cross-Region inference profile; in ca-central-1 use the global profile (global.anthropic.claude-haiku-5-5) if the bare base ID returns a validation error on Converse."
+  default     = "anthropic.claude-haiku-5-5"
 }
 
 variable "bedrock_model_arns" {
