@@ -31,3 +31,10 @@ cognito_logout_urls = [
   "http://localhost:5173/",
   "https://public.example.com/"
 ]
+
+# Optional separate dev viewer site (own S3 bucket + CloudFront, suffix "site-dev").
+# Leave disabled unless you want a second deploy target alongside the prod viewer site.
+enable_viewer_site_dev = false
+cors_allow_origins_dev = [
+  "http://localhost:5173"
+]

@@ -79,6 +79,18 @@ variable "enable_viewer_site" {
   default     = true
 }
 
+variable "enable_viewer_site_dev" {
+  type        = bool
+  description = "S3 + CloudFront for a separate dev build of the viewer app. Bucket suffix: site-dev."
+  default     = false
+}
+
+variable "cors_allow_origins_dev" {
+  type        = list(string)
+  description = "Origins for the dev viewer site S3 CORS."
+  default     = ["*"]
+}
+
 variable "enable_episode_database" {
   type        = bool
   description = "Create the Episode Aurora database and its separate public/authenticated API controllers."
