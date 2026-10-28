@@ -19,6 +19,10 @@ module "chat_backend" {
   # BUFFERED matches the game's single-reply OnMessage contract.
   invoke_mode = "BUFFERED"
 
+  # Bedrock Guardrail: content filtering + prompt-attack detection, applied
+  # server-side on every Converse call. Invisible to the game client.
+  enable_guardrail = var.enable_guardrail
+
   # Public Function URL (NONE auth) gated by a shared secret the handler checks.
   # IAM-user SigV4 auth proved unreliable for the scoped invoker on this account, so
   # the game sends the secret in the x-chat-secret header instead of signing.

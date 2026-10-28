@@ -62,3 +62,9 @@ variable "chat_shared_secret" {
   description = "Shared secret the game sends in the x-chat-secret header (Function URL uses NONE auth). Ships with the build; rotate by changing this and re-applying."
   sensitive   = true
 }
+
+variable "enable_guardrail" {
+  type        = bool
+  description = "Create a Bedrock Guardrail and apply it on every chat request (content filtering + prompt-attack detection)."
+  default     = true
+}
