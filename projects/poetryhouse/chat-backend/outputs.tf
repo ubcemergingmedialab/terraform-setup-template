@@ -21,3 +21,13 @@ output "chat_function_name" {
   description = "Lambda function name (for logs / console)."
   value       = module.chat_backend.function_name
 }
+
+output "guardrail_id" {
+  description = "Bedrock Guardrail ID (empty if enable_guardrail = false)."
+  value       = module.chat_backend.guardrail_id
+}
+
+output "guardrail_version" {
+  description = "Published Bedrock Guardrail version (empty if enable_guardrail = false)."
+  value       = module.chat_backend.guardrail_version
+}

@@ -1,11 +1,77 @@
 locals {
   # Merge the required Bedrock model id into any caller-supplied env vars.
   # When auth_type is NONE, the handler enforces a shared secret read from CHAT_SHARED_SECRET.
+  # When a guardrail is enabled, the handler reads GUARDRAIL_ID / GUARDRAIL_VERSION and
+  # passes them to Bedrock on each Converse call.
+  guardrail_env = var.enable_guardrail ? {
+    GUARDRAIL_ID      = aws_bedrock_guardrail.this[0].guardrail_id
+    GUARDRAIL_VERSION = aws_bedrock_guardrail_version.this[0].version
+  } : {}
+
   environment_variables = merge(
     { BEDROCK_MODEL_ID = var.bedrock_model_id },
+    local.guardrail_env,
     var.shared_secret != "" ? { CHAT_SHARED_SECRET = var.shared_secret } : {},
     var.environment_variables,
   )
+}
+
+# ------------------------------------------------------------------------------
+# Bedrock Guardrail (optional)
+#
+# An AWS-managed policy layer evaluated on each Bedrock invocation (input and
+# output). The handler references it via guardrailConfig on the Converse call.
+# ------------------------------------------------------------------------------
+
+resource "aws_bedrock_guardrail" "this" {
+  count = var.enable_guardrail ? 1 : 0
+
+  name                      = "${var.name_prefix}-chat-guardrail"
+  blocked_input_messaging   = var.guardrail_blocked_input_messaging
+  blocked_outputs_messaging = var.guardrail_blocked_outputs_messaging
+
+  content_policy_config {
+    filters_config {
+      type            = "SEXUAL"
+      input_strength  = "HIGH"
+      output_strength = "HIGH"
+    }
+    filters_config {
+      type            = "VIOLENCE"
+      input_strength  = "MEDIUM"
+      output_strength = "MEDIUM"
+    }
+    filters_config {
+      type            = "HATE"
+      input_strength  = "HIGH"
+      output_strength = "HIGH"
+    }
+    filters_config {
+      type            = "INSULTS"
+      input_strength  = "MEDIUM"
+      output_strength = "MEDIUM"
+    }
+    filters_config {
+      type            = "MISCONDUCT"
+      input_strength  = "MEDIUM"
+      output_strength = "MEDIUM"
+    }
+    filters_config {
+      type            = "PROMPT_ATTACK"
+      input_strength  = "HIGH"
+      output_strength = "NONE" # PROMPT_ATTACK only supports input filtering.
+    }
+  }
+
+  tags = var.tags
+}
+
+# Published, immutable snapshot the handler pins at runtime.
+resource "aws_bedrock_guardrail_version" "this" {
+  count = var.enable_guardrail ? 1 : 0
+
+  guardrail_arn = aws_bedrock_guardrail.this[0].guardrail_arn
+  description   = "Initial published version"
 }
 
 # ------------------------------------------------------------------------------
@@ -48,15 +114,23 @@ resource "aws_iam_role_policy" "bedrock" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Sid    = "BedrockInvokeModel"
-      Effect = "Allow"
-      Action = [
-        "bedrock:InvokeModel",
-        "bedrock:InvokeModelWithResponseStream",
-      ]
-      Resource = var.bedrock_model_arns
-    }]
+    Statement = concat(
+      [{
+        Sid    = "BedrockInvokeModel"
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ]
+        Resource = var.bedrock_model_arns
+      }],
+      var.enable_guardrail ? [{
+        Sid      = "BedrockApplyGuardrail"
+        Effect   = "Allow"
+        Action   = "bedrock:ApplyGuardrail"
+        Resource = aws_bedrock_guardrail.this[0].guardrail_arn
+      }] : [],
+    )
   })
 }
 
