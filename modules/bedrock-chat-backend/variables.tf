@@ -66,6 +66,12 @@ variable "enable_guardrail" {
   default     = false
 }
 
+variable "guardrail_description" {
+  type        = string
+  description = "Description for the Bedrock Guardrail. Set explicitly: leaving it null makes the aws provider return an unknown value after apply, which errors."
+  default     = "Content filtering and prompt-attack detection for the chat backend."
+}
+
 variable "guardrail_blocked_input_messaging" {
   type        = string
   description = "Message returned when the guardrail blocks the user's input."

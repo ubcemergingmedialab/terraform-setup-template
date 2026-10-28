@@ -27,6 +27,7 @@ resource "aws_bedrock_guardrail" "this" {
   count = var.enable_guardrail ? 1 : 0
 
   name                      = "${var.name_prefix}-chat-guardrail"
+  description               = var.guardrail_description
   blocked_input_messaging   = var.guardrail_blocked_input_messaging
   blocked_outputs_messaging = var.guardrail_blocked_outputs_messaging
 
