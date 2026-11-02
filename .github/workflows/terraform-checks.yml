@@ -61,6 +61,41 @@ jobs:
         working-directory: projects/poetryhouse/chat-backend
         run: terraform validate
 
+      - name: Enforce default_tags on every provider
+        # Phase 1 tagging audit: every project root must declare the four
+        # cost-allocation tags in its provider default_tags block. Tags are
+        # applied centrally via default_tags (not per-resource), so this is the
+        # authoritative regression guard — a new project missing any of the four
+        # tags fails the build here. See docs/tagging-audit.md.
+        run: |
+          required_tags="Client Project Environment ManagedBy"
+          fail=0
+          # Every .tf file that declares an aws provider block.
+          provider_files=$(grep -rl 'provider "aws"' --include="*.tf" projects)
+          for f in $provider_files; do
+            # _template carries placeholder values; it is validated separately.
+            for tag in $required_tags; do
+              if ! grep -qE "^[[:space:]]*${tag}[[:space:]]*=" "$f"; then
+                echo "::error file=${f}::provider default_tags is missing required tag '${tag}'"
+                fail=1
+              fi
+            done
+            if ! grep -q 'default_tags' "$f"; then
+              echo "::error file=${f}::aws provider block has no default_tags block"
+              fail=1
+            fi
+            # ManagedBy must be hard-coded to "terraform", not wired to a variable.
+            if ! grep -qE 'ManagedBy[[:space:]]*=[[:space:]]*"terraform"' "$f"; then
+              echo "::error file=${f}::ManagedBy must be hard-coded to \"terraform\""
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "Tagging enforcement failed. Every aws provider block must declare default_tags with Client, Project, Environment, and ManagedBy = \"terraform\"."
+            exit 1
+          fi
+          echo "All provider blocks declare the four required tags."
+
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
 
