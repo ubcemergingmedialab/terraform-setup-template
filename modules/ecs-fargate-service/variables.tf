@@ -50,6 +50,12 @@ variable "environment_variables" {
   default     = {}
 }
 
+variable "secrets" {
+  type        = map(string)
+  description = "Secrets injected into the container as environment variables. Map of container env var name => Secrets Manager secret ARN (or SSM parameter ARN). ECS resolves these at task start; the task execution role is granted read access to every ARN listed. Values never appear in the task definition or logs."
+  default     = {}
+}
+
 variable "task_policy_json" {
   type        = string
   description = "IAM policy JSON for task role (application permissions). Leave empty for no custom permissions."

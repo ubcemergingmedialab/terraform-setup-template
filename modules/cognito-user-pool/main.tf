@@ -5,6 +5,12 @@ locals {
 resource "aws_cognito_user_pool" "this" {
   name = "${var.name_prefix}-users"
 
+  # Lock the pool down: admin-created users only unless self sign-up is explicitly
+  # allowed. This is the single-tenant / approved-users posture.
+  admin_create_user_config {
+    allow_admin_create_user_only = !var.allow_self_signup
+  }
+
   password_policy {
     minimum_length    = var.password_minimum_length
     require_lowercase = true
@@ -62,4 +68,41 @@ resource "aws_cognito_user_pool_client" "this" {
     "ALLOW_REFRESH_TOKEN_AUTH",
     "ALLOW_USER_SRP_AUTH",
   ]
+}
+
+# Optional user group gating app access (e.g. a single "approved" group).
+resource "aws_cognito_user_group" "this" {
+  count = var.user_group_name != "" ? 1 : 0
+
+  name         = var.user_group_name
+  user_pool_id = aws_cognito_user_pool.this.id
+  description  = var.user_group_description
+}
+
+# Optional single seeded user (admin-created). Cognito emails a temporary password
+# via the default invite flow; the user sets a permanent one on first hosted-UI login.
+resource "aws_cognito_user" "seed" {
+  count = var.seed_user_email != "" ? 1 : 0
+
+  user_pool_id = aws_cognito_user_pool.this.id
+  username     = var.seed_user_email
+
+  attributes = {
+    email          = var.seed_user_email
+    email_verified = "true"
+  }
+
+  # Let Terraform create the user but never fight Cognito over the password or
+  # the account's post-first-login state.
+  lifecycle {
+    ignore_changes = [temporary_password, password, attributes]
+  }
+}
+
+resource "aws_cognito_user_in_group" "seed" {
+  count = var.seed_user_email != "" && var.user_group_name != "" ? 1 : 0
+
+  user_pool_id = aws_cognito_user_pool.this.id
+  group_name   = aws_cognito_user_group.this[0].name
+  username     = aws_cognito_user.seed[0].username
 }

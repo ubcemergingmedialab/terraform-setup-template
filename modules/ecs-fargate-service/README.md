@@ -36,7 +36,8 @@ ECS Fargate service behind an Application Load Balancer. Designed for WebSocket-
 | `cpu` | number | `512` | Fargate CPU units (256, 512, 1024, 2048, 4096). |
 | `memory_mb` | number | `1024` | Fargate memory in MB (512, 1024, 2048, ...). |
 | `desired_count` | number | `1` | Number of tasks to run. |
-| `environment_variables` | map(string) | `{}` | Environment variables passed to the container. |
+| `environment_variables` | map(string) | `{}` | Environment variables passed to the container (plaintext). |
+| `secrets` | map(string) | `{}` | Secrets injected as env vars. Map of env var name => Secrets Manager/SSM ARN. ECS resolves at task start; the execution role is auto-granted read on the listed ARNs. |
 | `task_policy_json` | string | `""` | IAM policy JSON for task role (application permissions). |
 | `alb_ingress_cidr_blocks` | list(string) | `["0.0.0.0/0"]` | CIDR blocks allowed to access the ALB. |
 | `alb_internal` | bool | `false` | Make the ALB internal (not internet-facing). |

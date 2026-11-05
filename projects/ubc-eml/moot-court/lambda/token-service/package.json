@@ -1,0 +1,13 @@
+{
+  "name": "moot-court-token-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MootCourt token service: LiveKit join tokens + Simli proxy + single-session lock + LiveKit webhook.",
+  "dependencies": {
+    "livekit-server-sdk": "^2.13.0",
+    "@aws-sdk/client-secrets-manager": "^3.1066.0",
+    "@aws-sdk/client-dynamodb": "^3.1066.0",
+    "@aws-sdk/lib-dynamodb": "^3.1066.0"
+  }
+}

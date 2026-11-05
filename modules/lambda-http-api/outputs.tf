@@ -8,6 +8,16 @@ output "function_arn" {
   value       = aws_lambda_function.this.arn
 }
 
+output "function_role_name" {
+  description = "Name of the Lambda execution IAM role (attach extra policies here)."
+  value       = aws_iam_role.lambda.name
+}
+
+output "function_role_arn" {
+  description = "ARN of the Lambda execution IAM role."
+  value       = aws_iam_role.lambda.arn
+}
+
 output "api_endpoint" {
   description = "Invoke URL for the HTTP API ($default stage)."
   value       = aws_apigatewayv2_stage.default.invoke_url
