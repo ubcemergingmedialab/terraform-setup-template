@@ -12,6 +12,12 @@ tags = {
 # Viewer site vars
 enable_viewer_site = true
 
+# Separate dev viewer site (own bucket + CloudFront, suffix "site-dev").
+enable_viewer_site_dev = true
+cors_allow_origins_dev = [
+  "http://localhost:5173"
+]
+
 # Terraform-managed private VPC for Aurora.
 enable_episode_database     = true
 database_vpc_cidr           = "10.42.0.0/16"

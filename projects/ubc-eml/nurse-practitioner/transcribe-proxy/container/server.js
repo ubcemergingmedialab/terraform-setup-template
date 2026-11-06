@@ -64,6 +64,10 @@ wss.on('connection', async (ws, req) => {
     let lastSampleRate = 16000;
     let transcribeClient = null;
     let isClosing = false;
+    // True while a Transcribe session is live. Sessions are started lazily when audio
+    // arrives (not eagerly on connect or on {"action":"end"}), so an ended utterance
+    // never leaves an idle session that would trip Transcribe's 15s no-audio timeout.
+    let sessionActive = false;
 
     try {
         // Create AWS Transcribe client
@@ -88,10 +92,34 @@ wss.on('connection', async (ws, req) => {
             }
         }
 
-        // Handle incoming binary messages from Unreal.
-        // Frame format: [4-byte little-endian sample rate][PCM16 mono audio].
-        ws.on('message', async (data) => {
+        // Handle incoming messages from Unreal.
+        // - Binary frame: [4-byte little-endian sample rate][PCM16 mono audio].
+        // - Text frame:   a control message. {"action":"end"} finalizes the current
+        //   utterance so Transcribe flushes its final (isPartial:false) result WITHOUT
+        //   closing the socket, so the same connection can be reused for the next turn.
+        ws.on('message', async (data, isBinary) => {
             try {
+                // End-of-utterance control message (text frame). Ending audioStream
+                // closes the PassThrough feeding Transcribe, which flushes the final
+                // (isPartial:false) result. We do NOT start a new session here: the
+                // utterance is over and no more audio is coming, so an eagerly-started
+                // session would just sit idle and hit Transcribe's 15s timeout. Instead
+                // we mark the session inactive and lazily start a fresh one when the
+                // NEXT audio frame actually arrives (see the binary branch below).
+                if (!isBinary) {
+                    const text = data.toString('utf8');
+                    if (text.includes('"action":"end"')) {
+                        console.log(`[${connectionId}] End-of-utterance control received; flushing Transcribe stream`);
+                        if (sessionActive && audioStream && !audioStream.destroyed) {
+                            audioStream.end();
+                        }
+                        sessionActive = false;
+                    } else {
+                        console.warn(`[${connectionId}] Ignoring unrecognized text control message`);
+                    }
+                    return;
+                }
+
                 if (!Buffer.isBuffer(data) || data.length < 4) {
                     console.warn(`[${connectionId}] Received invalid message (not binary or too short)`);
                     return;
@@ -105,25 +133,37 @@ wss.on('connection', async (ws, req) => {
                     return;
                 }
 
-                // If sample rate changed, restart Transcribe session
-                if (sampleRate !== lastSampleRate) {
-                    console.log(`[${connectionId}] Sample rate changed: ${lastSampleRate} → ${sampleRate} Hz`);
-                    lastSampleRate = sampleRate;
-                    
-                    // End current stream
-                    if (audioStream && !audioStream.destroyed) {
-                        audioStream.end();
+                // Lazily (re)start a Transcribe session when audio arrives and none is
+                // active -- either the first utterance on this socket, or the next one
+                // after a prior {"action":"end"}, or a sample-rate change.
+                //
+                // IMPORTANT: ws invokes this handler per message and does NOT serialize
+                // across awaits. If we awaited startTranscribeSession here, the following
+                // audio frames (and the end frame) would re-enter this handler before
+                // sessionActive flips true, each starting another session and racing the
+                // flush -> Transcribe gets little/no audio and returns nothing. So we set
+                // sessionActive + create the PassThrough SYNCHRONOUSLY (before any await)
+                // and start the Transcribe session fire-and-forget. The PassThrough buffers
+                // any audio written before the Transcribe consumer attaches, so no data is
+                // lost and ordering is preserved.
+                if (!sessionActive || sampleRate !== lastSampleRate) {
+                    if (sessionActive && sampleRate !== lastSampleRate) {
+                        console.log(`[${connectionId}] Sample rate changed: ${lastSampleRate} → ${sampleRate} Hz`);
+                        if (audioStream && !audioStream.destroyed) {
+                            audioStream.end();
+                        }
                     }
-                    
-                    // Wait a bit for cleanup
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                    // Start new stream
+                    lastSampleRate = sampleRate;
                     audioStream = new PassThrough();
-                    await startTranscribeSession(sampleRate);
+                    sessionActive = true; // set BEFORE awaiting so re-entrant frames don't restart
+                    // Fire-and-forget: attaches the audioGenerator to the PassThrough above.
+                    startTranscribeSession(sampleRate).catch((err) => {
+                        console.error(`[${connectionId}] startTranscribeSession failed:`, err && err.message);
+                    });
                 }
 
-                // Send audio to Transcribe
+                // Send audio to Transcribe (buffered by the PassThrough until the
+                // Transcribe consumer attaches).
                 if (audioStream && !audioStream.destroyed && !isClosing) {
                     audioStream.write(audioData);
                 }
@@ -206,8 +246,9 @@ wss.on('connection', async (ws, req) => {
             }
         }
 
-        // Start initial session
-        await startTranscribeSession(lastSampleRate);
+        // No eager session start: the first Transcribe session begins lazily when the
+        // first audio frame arrives (see the binary branch), so a connected-but-silent
+        // client never holds an idle session open against the 15s no-audio timeout.
 
     } catch (error) {
         console.error(`[${connectionId}] Connection error:`, error.message);

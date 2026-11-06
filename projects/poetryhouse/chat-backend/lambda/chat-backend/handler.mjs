@@ -23,6 +23,10 @@ import crypto from 'node:crypto'
 
 const region = process.env.AWS_REGION ?? 'ca-central-1'
 const modelId = process.env.BEDROCK_MODEL_ID
+// Optional Bedrock Guardrail. When set, it's applied to both the input and the
+// model output on every Converse call. Enforced server-side; invisible to the client.
+const guardrailId = process.env.GUARDRAIL_ID
+const guardrailVersion = process.env.GUARDRAIL_VERSION ?? 'DRAFT'
 // When the Function URL uses NONE auth, the endpoint is public, so the handler
 // enforces a shared secret sent in the x-chat-secret header. If unset, the check
 // is skipped (only appropriate when the URL uses AWS_IAM auth instead).
@@ -118,6 +122,13 @@ export const handler = async (event) => {
           maxTokens: Number.isFinite(body.maxTokens) ? body.maxTokens : 512,
           temperature: Number.isFinite(body.temperature) ? body.temperature : 0.7,
         },
+        // Converse takes the guardrail via guardrailConfig (not top-level params).
+        ...(guardrailId && {
+          guardrailConfig: {
+            guardrailIdentifier: guardrailId,
+            guardrailVersion,
+          },
+        }),
       }),
     )
 

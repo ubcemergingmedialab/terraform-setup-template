@@ -42,13 +42,54 @@ The handler imports only `@aws-sdk/client-bedrock-runtime` and
 `@aws-sdk/client-polly`, both preinstalled in the Lambda Node.js runtime, so the
 deploy zip is just `handler.mjs` — no `node_modules` shipped or committed.
 
-## Model & voice
+## Model
 
 - `bedrock_model_id` = `global.anthropic.claude-sonnet-4-6` (global inference
   profile, enabled for this account; invokable from any region).
-- `polly_voice_id` = `Tiffany` (Polly voice; the old DXL/OpenAI voice names like
-  `alloy`/`nova` do **not** exist in Polly). `polly_engine` = `neural`.
-- Per-request overrides: send `voiceId` / `outputFormat` in the POST body.
+
+## Voices & engine (Amazon Polly)
+
+Defaults: `polly_voice_id = "Tiffany"`, `polly_engine = "generative"`.
+
+The old DXL/OpenAI voice names (`alloy`, `nova`, `echo`, ...) do **not** exist in
+Polly — use a Polly voice below. **The voice must support the chosen engine**, or
+synthesis fails with `This voice does not support the selected engine`.
+
+### Engine trade-offs
+
+| | `generative` (default) | `neural` |
+|---|---|---|
+| Naturalness | Most human/expressive | Very natural, slightly flatter affect |
+| Latency | Higher | Lower (faster reply) |
+| Cost | Higher per character | Lower |
+| Inflection on lists/numbers/short lines | Can wander | Steadier |
+
+`generative` is the default for a more immersive patient voice. If you want faster,
+cheaper replies (or steadier inflection on number/short utterances), switch to
+`neural` with a neural-capable voice.
+
+### Available en-US voices in `ca-central-1`
+
+(Verified via `aws polly describe-voices`.)
+
+- **generative:** Joanna (F), Ruth (F), Salli (F), Stephen (M), Tiffany (F)
+- **neural:** Joanna (F), Ruth (F), Salli (F), Stephen (M), Danielle (F),
+  Kimberly (F), Kendra (F), Ivy (F), Gregory (M), Kevin (M), Matthew (M),
+  Justin (M), Joey (M)
+- **en-GB generative** (British accent): Amy (F), Brian (M)
+
+**Joanna, Ruth, Salli, Stephen** support **both** engines, so you can flip
+`polly_engine` without changing the voice — handy for A/B testing generative vs
+neural on the same voice.
+
+### How to change
+
+- Project-wide default: set `polly_voice_id` / `polly_engine` in
+  `terraform.auto.tfvars` (or the variable defaults) and re-apply. Keep them a
+  compatible pair.
+- Per request: send `voiceId` / `outputFormat` in the POST body (these override the
+  defaults). Note the request does **not** override the engine — that's the
+  Lambda's `POLLY_ENGINE` env var, set from `polly_engine`.
 
 ## Wire the game to it
 

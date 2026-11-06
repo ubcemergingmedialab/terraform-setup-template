@@ -125,6 +125,28 @@ output "viewer_cloudfront_domain" {
   value       = var.enable_viewer_site ? module.viewer_site[0].cloudfront_domain : null
 }
 
+# --- Dev viewer static site ---
+
+output "viewer_site_dev_url" {
+  description = "Public HTTPS URL for the dev viewer app."
+  value       = var.enable_viewer_site_dev ? module.viewer_site_dev[0].site_url : null
+}
+
+output "viewer_site_dev_bucket_name" {
+  description = "S3 bucket for dev viewer deploy (aws s3 sync apps/viewer/dist)."
+  value       = var.enable_viewer_site_dev ? module.viewer_site_dev[0].bucket_name : null
+}
+
+output "viewer_cloudfront_dev_distribution_id" {
+  description = "Dev viewer CloudFront distribution ID for cache invalidation."
+  value       = var.enable_viewer_site_dev ? module.viewer_site_dev[0].cloudfront_distribution_id : null
+}
+
+output "viewer_cloudfront_dev_domain" {
+  description = "Dev viewer CloudFront hostname (no https://)."
+  value       = var.enable_viewer_site_dev ? module.viewer_site_dev[0].cloudfront_domain : null
+}
+
 output "site_url" {
   description = "Alias for viewer_site_url (backward compatible)."
   value       = var.enable_viewer_site ? module.viewer_site[0].site_url : null

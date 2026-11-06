@@ -1,0 +1,9 @@
+{
+  "name": "ubc-eml-planetary-voice-chat-tts-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-polly": "^3.1066.0"
+  }
+}

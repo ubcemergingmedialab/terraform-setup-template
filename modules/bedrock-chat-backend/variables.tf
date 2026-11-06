@@ -60,6 +60,30 @@ variable "environment_variables" {
   default     = {}
 }
 
+variable "enable_guardrail" {
+  type        = bool
+  description = "Create a Bedrock Guardrail and apply it on each Converse call. Grants the Lambda role bedrock:ApplyGuardrail and injects GUARDRAIL_ID / GUARDRAIL_VERSION into the handler."
+  default     = false
+}
+
+variable "guardrail_description" {
+  type        = string
+  description = "Description for the Bedrock Guardrail. Set explicitly: leaving it null makes the aws provider return an unknown value after apply, which errors."
+  default     = "Content filtering and prompt-attack detection for the chat backend."
+}
+
+variable "guardrail_blocked_input_messaging" {
+  type        = string
+  description = "Message returned when the guardrail blocks the user's input."
+  default     = "Sorry, I can't help with that."
+}
+
+variable "guardrail_blocked_outputs_messaging" {
+  type        = string
+  description = "Message returned when the guardrail blocks the model's output."
+  default     = "Sorry, I can't share that."
+}
+
 variable "invoke_mode" {
   type        = string
   description = "Function URL invoke mode: BUFFERED (single reply) or RESPONSE_STREAM (NDJSON stream)."

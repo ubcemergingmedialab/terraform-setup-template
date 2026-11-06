@@ -23,6 +23,16 @@ output "log_group_name" {
   value       = aws_cloudwatch_log_group.lambda.name
 }
 
+output "guardrail_id" {
+  description = "Bedrock Guardrail ID (empty if enable_guardrail = false)."
+  value       = var.enable_guardrail ? aws_bedrock_guardrail.this[0].guardrail_id : ""
+}
+
+output "guardrail_version" {
+  description = "Published Bedrock Guardrail version (empty if enable_guardrail = false)."
+  value       = var.enable_guardrail ? aws_bedrock_guardrail_version.this[0].version : ""
+}
+
 output "invoker_access_key_id" {
   description = "Access key ID for the scoped invoke-only user (empty if create_invoker_user = false)."
   value       = var.create_invoker_user ? aws_iam_access_key.invoker[0].id : ""

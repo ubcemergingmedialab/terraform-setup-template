@@ -731,6 +731,19 @@ module "viewer_site" {
   cors_allowed_origins = var.cors_allow_origins
 }
 
+# Dev viewer app. Independent S3 bucket + CloudFront distribution so a dev build
+# can be deployed without touching the production viewer site above. Bucket
+# suffix "site-dev" keeps it clearly separated from the prod "site" bucket.
+module "viewer_site_dev" {
+  count  = var.enable_viewer_site_dev ? 1 : 0
+  source = "../../../modules/s3-static-site"
+
+  name_prefix          = local.name_prefix
+  bucket_name_suffix   = "site-dev"
+  spa_routing          = true
+  cors_allowed_origins = var.cors_allow_origins_dev
+}
+
 module "episode_database" {
   count  = var.enable_episode_database ? 1 : 0
   source = "../../../modules/aurora-serverless-postgres"
