@@ -1,10 +1,8 @@
 import {
   ApiError,
-  createLinkToken,
   execute,
   getClaims,
   handleError,
-  hashToken,
   methodOf,
   ok,
   parseBody,
@@ -118,28 +116,28 @@ async function updateScenario(instructorId, rawId, body) {
 
 async function createScenarioLink(instructorId, body) {
   const scenarioId = requireUuid(body.scenarioId, 'scenarioId')
+  const slug = requireString(body.slug, 'slug', { max: 64 })
   const audienceName = requireString(body.audienceName, 'audienceName', { max: 256 })
   const scenario = records(await execute('SELECT id, created_by, private FROM scenario WHERE id = :id', [['id', scenarioId]]))[0]
   if (!scenario) throw new ApiError(404, 'NOT_FOUND', 'Scenario not found.')
   if (scenario.private && scenario.created_by !== instructorId) throw new ApiError(403, 'FORBIDDEN', 'Only the scenario author can create links for a private scenario.')
-  const token = createLinkToken()
   const expiresAt = body.expiresAt === null || body.expiresAt === undefined ? null : parseDateTime(body.expiresAt, 'expiresAt')
   const id = uuid()
   const row = records(await execute(`
-    INSERT INTO scenario_link (id, scenario_id, instructor_id, audience_name, token_hash, expires_at)
-    VALUES (:id, :scenario_id, :instructor_id, :audience_name, :token_hash, :expires_at)
-    RETURNING id, scenario_id, instructor_id, audience_name, created_at, expires_at, revoked_at, completion_count
-  `, [['id', id], ['scenario_id', scenarioId], ['instructor_id', instructorId], ['audience_name', audienceName], ['token_hash', hashToken(token)], ['expires_at', expiresAt]]))[0]
-  return ok({ ...formatLink(row), token, linkUrl: `${process.env.APP_BASE_URL}/s/${token}` }, 201)
+    INSERT INTO scenario_link (id, scenario_id, instructor_id, audience_name, slug, expires_at)
+    VALUES (:id, :scenario_id, :instructor_id, :audience_name, :slug, :expires_at)
+    RETURNING id, scenario_id, instructor_id, audience_name, slug, created_at, expires_at, revoked_at, completion_count
+  `, [['id', id], ['scenario_id', scenarioId], ['instructor_id', instructorId], ['audience_name', audienceName], ['slug', slug], ['expires_at', expiresAt]]))[0]
+  return ok({ ...formatLink(row), linkUrl: `${process.env.APP_BASE_URL}/s/${slug}` }, 201)
 }
 
 async function revokeLink(instructorId, rawId) {
   const id = requireUuid(rawId, 'id')
-  const row = records(await execute('SELECT id, scenario_id, instructor_id, audience_name, created_at, expires_at, revoked_at, completion_count FROM scenario_link WHERE id = :id', [['id', id]]))[0]
+  const row = records(await execute('SELECT id, scenario_id, instructor_id, audience_name, slug, created_at, expires_at, revoked_at, completion_count FROM scenario_link WHERE id = :id', [['id', id]]))[0]
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Scenario link not found.')
   if (row.instructor_id !== instructorId) throw new ApiError(403, 'FORBIDDEN', 'You do not have permission to access this resource.')
   if (row.revoked_at) throw new ApiError(400, 'ALREADY_REVOKED', 'This scenario link has already been revoked.')
-  const revoked = records(await execute('UPDATE scenario_link SET revoked_at = now() WHERE id = :id RETURNING id, scenario_id, instructor_id, audience_name, created_at, expires_at, revoked_at, completion_count', [['id', id]]))[0]
+  const revoked = records(await execute('UPDATE scenario_link SET revoked_at = now() WHERE id = :id RETURNING id, scenario_id, instructor_id, audience_name, slug, created_at, expires_at, revoked_at, completion_count', [['id', id]]))[0]
   return ok(formatLink(revoked))
 }
 
@@ -204,7 +202,7 @@ function formatScenario(row) {
 }
 
 function formatLink(row) {
-  return { id: row.id, scenarioId: row.scenario_id, instructorId: row.instructor_id, audienceName: row.audience_name, createdAt: row.created_at, expiresAt: row.expires_at, revokedAt: row.revoked_at, completionCount: Number(row.completion_count) }
+  return { id: row.id, scenarioId: row.scenario_id, instructorId: row.instructor_id, audienceName: row.audience_name, slug: row.slug, createdAt: row.created_at, expiresAt: row.expires_at, revokedAt: row.revoked_at, completionCount: Number(row.completion_count) }
 }
 
 function formatAnalytics(row) {

@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import {
   RDSDataClient,
   BeginTransactionCommand,
@@ -72,14 +72,6 @@ export function parseDateTime(value, field) {
   const date = new Date(requireString(value, field))
   if (Number.isNaN(date.getTime())) throw new ApiError(400, 'VALIDATION_ERROR', `"${field}" is invalid.`)
   return date.toISOString()
-}
-
-export function hashToken(token) {
-  return createHash('sha256').update(requireString(token, 'linkToken')).digest('hex')
-}
-
-export function createLinkToken() {
-  return randomBytes(32).toString('hex')
 }
 
 export function getClaims(event) {

@@ -19,7 +19,7 @@ Lambda execution role and CloudWatch log group.
 The API routes are:
 
 - Public/auth: `POST /auth/login`, `POST /auth/forgot-password`,
-	`POST /auth/confirm-password`, `GET /scenarios/{linkToken}`, and
+	`POST /auth/confirm-password`, `GET /scenarios/{slug}`, and
 	`POST /attempts`.
 - Instructor: scenario management, scenario-link management, and analytics
 	under `/instructor/*`. These routes require a Cognito JWT at API Gateway.
@@ -32,7 +32,7 @@ directory before a deployment package is produced.
 Example public call:
 
 ```bash
-curl "$EPISODE_API/scenarios/<scenario-link-token>"
+curl "$EPISODE_API/scenarios/<scenario-slug>"
 ```
 
 Example authenticated call:
