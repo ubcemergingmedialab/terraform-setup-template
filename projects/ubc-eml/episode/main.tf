@@ -800,7 +800,7 @@ module "episode_api" {
     { method = "POST", path = "/auth/login", function_name = "public", authorization_type = "NONE" },
     { method = "POST", path = "/auth/forgot-password", function_name = "public", authorization_type = "NONE" },
     { method = "POST", path = "/auth/confirm-password", function_name = "public", authorization_type = "NONE" },
-    { method = "GET", path = "/scenarios/{linkToken}", function_name = "public", authorization_type = "NONE" },
+    { method = "GET", path = "/scenarios/{slug}", function_name = "public", authorization_type = "NONE" },
     { method = "POST", path = "/attempts", function_name = "public", authorization_type = "NONE" },
     { method = "GET", path = "/instructor/scenarios", function_name = "authenticated", authorization_type = "JWT" },
     { method = "POST", path = "/instructor/scenarios", function_name = "authenticated", authorization_type = "JWT" },

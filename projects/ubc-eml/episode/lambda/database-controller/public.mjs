@@ -8,7 +8,6 @@ import {
   ApiError,
   execute,
   handleError,
-  hashToken,
   methodOf,
   ok,
   parseBody,
@@ -33,7 +32,7 @@ export async function handler(event) {
     if (method === 'POST' && path.endsWith('/auth/login')) return await login(parseBody(event))
     if (method === 'POST' && path.endsWith('/auth/forgot-password')) return await forgotPassword(parseBody(event))
     if (method === 'POST' && path.endsWith('/auth/confirm-password')) return await confirmPassword(parseBody(event))
-    if (method === 'GET' && pathParameter(event, 'linkToken')) return await loadScenario(pathParameter(event, 'linkToken'))
+    if (method === 'GET' && pathParameter(event, 'slug')) return await loadScenario(pathParameter(event, 'slug'))
     if (method === 'POST' && path.endsWith('/attempts')) return await submitAttempt(parseBody(event))
     throw new ApiError(404, 'NOT_FOUND', 'The requested resource was not found.')
   } catch (error) {
@@ -94,17 +93,17 @@ async function confirmPassword(body) {
   return ok({ message: 'Password has been reset successfully. Please log in with your new password.' })
 }
 
-async function loadScenario(token) {
+async function loadScenario(slug) {
   const result = records(await execute(`
     SELECT s.id, s.title, s.summary, s.current_issue_name, s.current_issue,
       s.patient_knowledge, s.teaching_prompts, s.appended_patient_info,
       s.emotive_state, s.patient_id
     FROM scenario_link sl JOIN scenario s ON s.id = sl.scenario_id
-    WHERE sl.token_hash = :token_hash AND sl.revoked_at IS NULL
+    WHERE sl.slug = :slug AND sl.revoked_at IS NULL
       AND (sl.expires_at IS NULL OR sl.expires_at >= now())
-  `, [['token_hash', hashToken(token)]]))
+  `, [['slug', slug]]))
   if (result.length === 0) {
-    const link = records(await execute('SELECT revoked_at, expires_at FROM scenario_link WHERE token_hash = :token_hash', [['token_hash', hashToken(token)]]))
+    const link = records(await execute('SELECT revoked_at, expires_at FROM scenario_link WHERE slug = :slug', [['slug', slug]]))
     if (link[0]?.revoked_at) throw new ApiError(403, 'LINK_REVOKED', 'This scenario link has been revoked.')
     if (link[0]?.expires_at) throw new ApiError(403, 'LINK_EXPIRED', 'This scenario link has expired.')
     throw new ApiError(404, 'NOT_FOUND', 'The requested resource was not found.')
