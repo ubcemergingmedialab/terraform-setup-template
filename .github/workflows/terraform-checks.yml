@@ -31,6 +31,10 @@ jobs:
         working-directory: projects/poetryhouse/chat-backend/lambda/chat-backend
         run: npm ci
 
+      - name: Install MootCourt token-service Lambda dependencies
+        working-directory: projects/ubc-eml/moot-court/lambda/token-service
+        run: npm ci
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.9.0"

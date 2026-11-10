@@ -39,6 +39,37 @@ resource "aws_iam_role_policy_attachment" "task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Allow the task execution role to read the Secrets Manager / SSM values that the
+# task definition injects via the `secrets` block. ECS resolves these at task
+# start using the execution role, so read access must live here (not on the task
+# role). Scoped to exactly the ARNs the caller listed in var.secrets.
+resource "aws_iam_role_policy" "task_execution_secrets" {
+  count = length(var.secrets) > 0 ? 1 : 0
+
+  name = "${var.name_prefix}-execution-secrets"
+  role = aws_iam_role.task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "secretsmanager:GetSecretValue",
+        "ssm:GetParameters",
+      ]
+      # A Secrets Manager valueFrom may carry a `:json-key:version-stage:version-id`
+      # suffix for JSON-key extraction. That suffix is valid for the ECS secret
+      # reference but NOT for an IAM resource ARN, so strip it back to the base
+      # secret ARN (arn:aws:secretsmanager:region:acct:secret:name). SSM parameter
+      # ARNs have no such suffix and pass through unchanged.
+      Resource = distinct([
+        for arn in values(var.secrets) :
+        can(regex("^arn:aws:secretsmanager:", arn)) ? join(":", slice(split(":", arn), 0, 7)) : arn
+      ])
+    }]
+  })
+}
+
 # IAM Role for Task (application permissions)
 resource "aws_iam_role" "task" {
   name = "${var.name_prefix}-task-role"
@@ -94,6 +125,16 @@ resource "aws_ecs_task_definition" "this" {
       for key, value in var.environment_variables : {
         name  = key
         value = value
+      }
+    ]
+
+    # Secrets Manager / SSM values injected as env vars at task start. ECS (via
+    # the execution role) resolves each valueFrom ARN; the plaintext never lands
+    # in the task definition or CloudWatch.
+    secrets = [
+      for name, arn in var.secrets : {
+        name      = name
+        valueFrom = arn
       }
     ]
 
