@@ -26,7 +26,7 @@ LiveKit Cloud room ── dispatches ──▶ agent worker (ECS Fargate, always
 
 | Piece | AWS | Module |
 |------|-----|--------|
-| Agent worker (`agent.py`, Polly path) | ECS Fargate + ALB (health only) + ECR | `ecs-fargate-service`, `ecr-repository` |
+| Agent worker (`agent.py`, Polly path) | ECS Fargate (no ALB; ECS container health check) + ECR | `ecs-fargate-service`, `ecr-repository` |
 | Token service (`handler.mjs`) | Lambda + API Gateway HTTP API | `lambda-http-api` |
 | Login gate | Cognito user pool (admin-created users only) + one group + one user | `cognito-user-pool` |
 | Frontend (`courtroom`) | S3 + CloudFront (OAC) | `s3-static-site` |

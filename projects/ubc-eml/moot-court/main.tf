@@ -222,14 +222,17 @@ module "agent" {
   name_prefix     = local.name_prefix
   container_image = "${module.agent_repo.repository_url}:${var.agent_image_tag}"
 
-  # The agent is a LiveKit worker, not an HTTP server. It exposes a lightweight
-  # health endpoint so the ALB target can report healthy; the real work is the
-  # outbound WebRTC worker connection to LiveKit Cloud. The health server listens
-  # on the container port itself, so health_check_port stays null (the module then
-  # uses traffic-port). Setting both to the same value maps the port twice, which
-  # ECS rejects.
+  # The agent is a LiveKit worker, not an HTTP server: it connects OUTBOUND to
+  # LiveKit Cloud and takes no inbound traffic, so there is no ALB. Liveness is
+  # checked by ECS itself against a small health server in the container (a
+  # Dockerfile HEALTHCHECK is ignored by ECS, so it is declared here).
+  enable_alb        = false
   container_port    = 8081
   health_check_path = "/health"
+  container_health_check_command = [
+    "CMD-SHELL",
+    "curl -fsS http://localhost:8081/health || exit 1",
+  ]
 
   cpu       = var.agent_cpu
   memory_mb = var.agent_memory_mb
@@ -283,10 +286,8 @@ module "agent" {
   })
 
   vpc_id             = data.aws_vpc.default.id
-  public_subnet_ids  = data.aws_subnets.public.ids
   private_subnet_ids = local.private_subnet_ids
   assign_public_ip   = true # Required to pull from ECR without a NAT gateway.
 
-  enable_sticky_sessions = false # No browser traffic hits the ALB; only health checks.
-  log_retention_days     = var.agent_log_retention_days
+  log_retention_days = var.agent_log_retention_days
 }
