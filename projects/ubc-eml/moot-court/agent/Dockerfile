@@ -28,6 +28,8 @@ RUN useradd --create-home --uid 1001 appuser && chown -R appuser:appuser /app
 USER appuser
 
 ENV HEALTH_PORT=8081
+# The LiveKit worker's own HTTP server must not share the health port.
+ENV AGENT_WORKER_PORT=8082
 EXPOSE 8081
 
 # Pre-download the Silero VAD weights at build time so the first dispatch is not
