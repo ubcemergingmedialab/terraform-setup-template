@@ -220,9 +220,11 @@ module "agent" {
 
   # The agent is a LiveKit worker, not an HTTP server. It exposes a lightweight
   # health endpoint so the ALB target can report healthy; the real work is the
-  # outbound WebRTC worker connection to LiveKit Cloud.
+  # outbound WebRTC worker connection to LiveKit Cloud. The health server listens
+  # on the container port itself, so health_check_port stays null (the module then
+  # uses traffic-port). Setting both to the same value maps the port twice, which
+  # ECS rejects.
   container_port    = 8081
-  health_check_port = 8081
   health_check_path = "/health"
 
   cpu       = var.agent_cpu

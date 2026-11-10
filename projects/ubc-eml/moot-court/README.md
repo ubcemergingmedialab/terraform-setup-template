@@ -134,8 +134,15 @@ Frontend runtime config (from outputs):
 
 The runner needs permissions for: Cognito, Secrets Manager, DynamoDB, Lambda,
 API Gateway, IAM (roles/policies), CloudWatch Logs, ECR, ECS, EC2 (VPC/SG/ALB
-data + ALB resources), S3, and CloudFront. Build from
-`docs/iam/hcp-terraform-policy.template.json`.
+data + ALB resources), S3, and CloudFront.
+
+Most of this is already granted to the shared `HCPTerraform` role by the existing
+`Managed-HCPTerraform-WebData` (Cognito pool, API Gateway, CloudFront) and the
+`Episode` / `Poetry` inline policies (Lambda, IAM, Logs, S3, ECS, ECR, ELB, EC2).
+The gaps are covered by `docs/iam/hcp-terraform-ubc-eml-moot-court-policy.json`
+(DynamoDB, Cognito user/group admin, API Gateway tagging, Secrets Manager), a
+customer-managed policy named `HCPTerraform-ubc-eml-moot-court`. Attach it to
+`HCPTerraform` before the first apply.
 
 ## Notes / cost
 
