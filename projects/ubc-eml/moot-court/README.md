@@ -68,9 +68,11 @@ no keys. `livekit_url` is public and lives in `terraform.auto.tfvars`.
 2. **Set the sensitive variables** above in the workspace.
 3. **Edit `terraform.auto.tfvars`**: `admin_email`, `livekit_url`, and (optionally)
    voice/position. Commit it.
-4. **Build + push the agent image and install the Lambda deps in CI** (see below)
-   so the plan can resolve the ECR image and zip the Lambda. HCP's own runner can
-   do this in a pre-plan step, or a separate CI job pushes to ECR on merge.
+4. **Build the Lambda bundle and push the agent image** (see below). The Lambda
+   bundle (`lambda/token-service/dist/`) is committed to git, because HCP plans from
+   a plain checkout with no `node_modules` and no pre-plan build step. The agent
+   image is pushed to ECR by hand (or a separate CI job); the ECS service needs it
+   before tasks can start.
 5. **Open a PR → HCP plans → merge → HCP applies.** Terraform is the only thing
    HCP runs; the image build and SPA upload are CI/post-apply steps, not Terraform.
 6. **One-time account prerequisites** (not Terraform):
@@ -79,7 +81,7 @@ no keys. `livekit_url` is public and lives in `terraform.auto.tfvars`.
    - In the LiveKit Cloud project, set the **webhook URL** to the
      `livekit_webhook_url` output so session-end releases the lock.
 
-### Build the agent image (CI, pushed to the `agent_ecr_repository_url` output)
+### Build the agent image (pushed to the `agent_ecr_repository_url` output)
 
 The Docker build context in `agent/` ships the Dockerfile and a health wrapper.
 Copy the MootCourt agent sources in before building:
@@ -87,26 +89,101 @@ Copy the MootCourt agent sources in before building:
 ```bash
 # from the MootCourt repo's livekit-agent/ dir, into this agent/ context:
 cp agent.py prompts.py requirements.txt <repo>/projects/ubc-eml/moot-court/agent/
-
-cd <repo>/projects/ubc-eml/moot-court/agent
-docker build -t "$ECR_URL:latest" .
-aws ecr get-login-password --region ca-central-1 | docker login --username AWS --password-stdin "${ECR_URL%/*}"
-docker push "$ECR_URL:latest"
 ```
+
+Then build and push. On a Windows workstation this uses the
+[amazon-ecr-credential-helper](https://github.com/awslabs/amazon-ecr-credential-helper)
+(`docker-credential-ecr-login`, bundled with Docker Desktop) instead of
+`docker login`, plus an `aws configure export-credentials` step. Both are
+explained below.
+
+**One-time setup:** add a `credHelpers` entry for the registry to
+`~/.docker/config.json`, keeping your existing keys:
+
+```json
+{
+  "credHelpers": {
+    "<account-id>.dkr.ecr.ca-central-1.amazonaws.com": "ecr-login"
+  }
+}
+```
+
+**Each push**, in a single shell:
+
+```bash
+# 1. Hand the credential helper plain env credentials (see "Why export-credentials")
+eval "$(aws configure export-credentials --format env)"
+
+# 2. Build and push. No `docker login` step; the helper fetches the ECR token.
+cd <repo>/projects/ubc-eml/moot-court/agent
+export ECR_URL=<account-id>.dkr.ecr.ca-central-1.amazonaws.com/ubc-eml-moot-court-dev-agent  # agent_ecr_repository_url output
+docker build -t "$ECR_URL:latest" .
+docker push "$ECR_URL:latest"
+
+# 3. Roll the running service onto the new image (optional; ECS also retries on its own)
+aws ecs update-service --region ca-central-1 \
+  --cluster <agent_cluster_name> --service <agent_service_name> --force-new-deployment
+```
+
+If you use a non-default AWS profile, pass it to the export:
+`aws configure export-credentials --profile <name> --format env`.
+
+On an ARM machine (Apple Silicon), add `--platform linux/amd64` to
+`docker build`. Fargate runs x86_64 by default, so an ARM image fails at task start
+with `exec format error`.
+
+#### Why export-credentials
+
+If your AWS profile was set up with `aws login` (the config has a `login_session`
+line instead of keys or SSO), the AWS CLI understands it but the credential
+helper's embedded SDK does not. The helper then finds no credentials, falls back to
+the EC2 metadata endpoint, and Docker reports `no basic auth credentials`.
+`aws configure export-credentials --format env` resolves the session through the
+CLI and exports it as `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` /
+`AWS_SESSION_TOKEN`, which the helper does read.
+
+- The exported credentials are temporary and live only in that shell. If a push
+  later fails with an auth error, the `aws login` session has expired: run
+  `aws login` and repeat step 1.
+- Quick check that the helper can get a token:
+  `echo <account-id>.dkr.ecr.ca-central-1.amazonaws.com | docker-credential-ecr-login get >/dev/null && echo OK`
+- The helper writes a log to `~/.ecr/log/ecr-login.log`. That is the place to look
+  first when a push says `no basic auth credentials`.
+
+#### Why not `docker login`
+
+The usual `aws ecr get-login-password | docker login --username AWS --password-stdin`
+flow fails on Windows Docker Desktop with
+`error storing credentials ... The stub received bad data`. ECR tokens are longer
+than the Windows credential store (`wincred`) accepts, so Docker cannot save the
+login. The credential helper avoids this by fetching a fresh token on every push
+instead of storing one.
 
 > The Polly path (`agent.py`) is all-AWS and needs **no** `AZURE_SPEECH_KEY`. The
 > agent authenticates Transcribe/Bedrock/Polly through the ECS task role; its
 > `_resolve_stt_credentials()` resolves the task-role creds from the container
 > credentials endpoint and hands them to the Transcribe plugin explicitly.
 
-### Install Lambda deps (CI, before plan)
+### Build the token-service Lambda bundle (commit `dist/`)
 
-`archive_file` zips `lambda/token-service/`, so `node_modules` must exist and
-`livekit-server-sdk` must be bundled (it is not in the Lambda runtime):
+Terraform zips `lambda/token-service/dist/`, a single esbuild bundle of
+`handler.mjs` that includes `livekit-server-sdk` (not part of the Lambda runtime).
+`@aws-sdk/*` is left external because the `nodejs20.x` runtime provides it.
+
+HCP Terraform VCS runs plan from a git checkout with no `node_modules` and no
+pre-plan build step, so the bundle is built locally and **committed**. Rebuild it
+whenever `handler.mjs` or the dependencies change:
 
 ```bash
-npm --prefix lambda/token-service ci
+cd projects/ubc-eml/moot-court/lambda/token-service
+npm ci
+npm run build        # writes dist/handler.mjs
+git add dist package.json package-lock.json
 ```
+
+CI (`terraform-checks.yml`) rebuilds the bundle and fails if `dist/` differs from
+what is committed, so a handler change cannot merge without its rebuilt bundle.
+`node_modules/` stays gitignored.
 
 ### Deploy the SPA (post-apply)
 
