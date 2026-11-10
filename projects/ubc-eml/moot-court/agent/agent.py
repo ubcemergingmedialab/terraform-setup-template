@@ -354,4 +354,12 @@ async def entrypoint(ctx: JobContext):
 
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, prewarm_fnc=prewarm))
+    # In production mode the worker starts its own HTTP server on 8081, which
+    # collides with the container's health endpoint (HEALTH_PORT, also 8081).
+    # Set AGENT_WORKER_PORT to move the worker's server. Unset = library default.
+    _opts = {}
+    if os.getenv("AGENT_WORKER_PORT"):
+        _opts["port"] = int(os.environ["AGENT_WORKER_PORT"])
+    cli.run_app(
+        WorkerOptions(entrypoint_fnc=entrypoint, prewarm_fnc=prewarm, **_opts)
+    )
