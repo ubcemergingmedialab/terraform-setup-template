@@ -4,10 +4,16 @@
   "private": true,
   "type": "module",
   "description": "MootCourt token service: LiveKit join tokens + Simli proxy + single-session lock + LiveKit webhook.",
+  "scripts": {
+    "build": "esbuild handler.mjs --bundle --platform=node --target=node20 --format=esm --outfile=dist/handler.mjs --external:@aws-sdk/* --banner:js=\"import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);\""
+  },
   "dependencies": {
-    "livekit-server-sdk": "^2.13.0",
-    "@aws-sdk/client-secrets-manager": "^3.1066.0",
     "@aws-sdk/client-dynamodb": "^3.1066.0",
-    "@aws-sdk/lib-dynamodb": "^3.1066.0"
+    "@aws-sdk/client-secrets-manager": "^3.1066.0",
+    "@aws-sdk/lib-dynamodb": "^3.1066.0",
+    "livekit-server-sdk": "^2.13.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

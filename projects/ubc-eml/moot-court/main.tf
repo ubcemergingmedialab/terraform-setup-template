@@ -109,7 +109,11 @@ module "token_api" {
   source = "../../../modules/lambda-http-api"
 
   name_prefix = local.name_prefix
-  source_path = "${path.module}/lambda/token-service"
+  # Zip the committed esbuild bundle (dist/handler.mjs), not the source dir. HCP
+  # plans from a git checkout with no node_modules, so livekit-server-sdk has to
+  # be bundled in. Rebuild with `npm run build` in lambda/token-service after any
+  # change to handler.mjs, and commit dist/.
+  source_path = "${path.module}/lambda/token-service/dist"
 
   runtime = "nodejs20.x"
   handler = "handler.handler"
