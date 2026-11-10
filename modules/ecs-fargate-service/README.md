@@ -1,6 +1,6 @@
 # `ecs-fargate-service`
 
-ECS Fargate service behind an Application Load Balancer. Designed for WebSocket-capable backends and long-running containerized services.
+ECS Fargate service, by default behind an Application Load Balancer. Set `enable_alb = false` for outbound-only workers that take no inbound traffic. Designed for WebSocket-capable backends and long-running containerized services.
 
 ## Features
 
@@ -23,7 +23,6 @@ ECS Fargate service behind an Application Load Balancer. Designed for WebSocket-
 | `name_prefix` | string | Name prefix for all resources (use `${client_name}-${project_name}-${environment}` pattern). |
 | `container_image` | string | Full container image URL (e.g., from ECR module output). |
 | `vpc_id` | string | VPC ID where resources will be created. |
-| `public_subnet_ids` | list(string) | Public subnet IDs for the Application Load Balancer. |
 | `private_subnet_ids` | list(string) | Private subnet IDs for ECS tasks. |
 
 ### Optional
@@ -39,6 +38,9 @@ ECS Fargate service behind an Application Load Balancer. Designed for WebSocket-
 | `environment_variables` | map(string) | `{}` | Environment variables passed to the container (plaintext). |
 | `secrets` | map(string) | `{}` | Secrets injected as env vars. Map of env var name => Secrets Manager/SSM ARN. ECS resolves at task start; the execution role is auto-granted read on the listed ARNs. |
 | `task_policy_json` | string | `""` | IAM policy JSON for task role (application permissions). |
+| `public_subnet_ids` | list(string) | `[]` | Public subnet IDs for the ALB. Required when `enable_alb` is true; ignored otherwise. |
+| `enable_alb` | bool | `true` | Create the ALB, target group, listeners and ALB security group. Set `false` for workers with no inbound traffic; avoids the ALB hourly charge, capacity units and one public IPv4 per AZ. |
+| `container_health_check_command` | list(string) | `[]` | ECS container health check, e.g. `["CMD-SHELL", "curl -fsS http://localhost:8081/health \|\| exit 1"]`. ECS ignores the Dockerfile `HEALTHCHECK`; use this when `enable_alb` is false. |
 | `alb_ingress_cidr_blocks` | list(string) | `["0.0.0.0/0"]` | CIDR blocks allowed to access the ALB. |
 | `alb_internal` | bool | `false` | Make the ALB internal (not internet-facing). |
 | `alb_deletion_protection` | bool | `false` | Enable deletion protection on the ALB. |
@@ -121,6 +123,14 @@ module "transcribe_proxy" {
   autoscaling_cpu_target     = 70
 }
 ```
+
+## Running without an ALB
+
+With `enable_alb = false` the ALB resources are not created, the service has no `load_balancer` block, and the task security group has no ingress rules. The ALB outputs (`alb_dns_name`, `alb_zone_id`, `alb_arn`, `target_group_arn`, `alb_security_group_id`, `websocket_url`) return `null`. Pass `container_health_check_command` so ECS can still replace a hung container.
+
+Switching an existing service from `true` to `false` recreates the ECS service (ECS cannot remove a load balancer from a service in place), so expect a short gap with no running task.
+
+The ALB resources are addressed with `count`. `moved` blocks in `main.tf` map the old addresses to `[0]`, so existing deployments keep their ALB and DNS name when they pick up this version. Review the plan in HCP before applying.
 
 ## WebSocket Support
 

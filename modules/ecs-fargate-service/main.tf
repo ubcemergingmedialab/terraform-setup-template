@@ -105,7 +105,7 @@ resource "aws_ecs_task_definition" "this" {
   execution_role_arn       = aws_iam_role.task_execution.arn
   task_role_arn            = aws_iam_role.task.arn
 
-  container_definitions = jsonencode([{
+  container_definitions = jsonencode([merge({
     name      = local.container_name
     image     = var.container_image
     essential = true
@@ -146,11 +146,31 @@ resource "aws_ecs_task_definition" "this" {
         "awslogs-stream-prefix" = "ecs"
       }
     }
-  }])
+    },
+    # Container-level health check (ECS ignores the Dockerfile HEALTHCHECK). Added
+    # only when a command is given, so existing callers' task definitions are
+    # unchanged. Use this when there is no ALB target group doing the checking.
+    # A for-expression with an `if` filter (rather than a conditional) avoids
+    # Terraform's "inconsistent conditional result types" error between an object
+    # with a healthCheck attribute and an empty object.
+    {
+      for k, v in {
+        healthCheck = {
+          command     = var.container_health_check_command
+          interval    = 30
+          timeout     = 5
+          retries     = 3
+          startPeriod = 30
+        }
+      } : k => v if length(var.container_health_check_command) > 0
+    }
+  )])
 }
 
 # Security Group for ALB
 resource "aws_security_group" "alb" {
+  count = var.enable_alb ? 1 : 0
+
   name        = "${var.name_prefix}-alb-sg"
   description = "Security group for ${var.name_prefix} ALB"
   vpc_id      = var.vpc_id
@@ -186,20 +206,25 @@ resource "aws_security_group" "ecs_tasks" {
   description = "Security group for ${var.name_prefix} ECS tasks"
   vpc_id      = var.vpc_id
 
-  ingress {
-    from_port       = var.container_port
-    to_port         = var.container_port
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+  # Inbound only from the ALB. With no ALB (enable_alb = false) nothing needs to
+  # reach the task, so there are no ingress rules.
+  dynamic "ingress" {
+    for_each = var.enable_alb ? [1] : []
+    content {
+      from_port       = var.container_port
+      to_port         = var.container_port
+      protocol        = "tcp"
+      security_groups = [aws_security_group.alb[0].id]
+    }
   }
 
   dynamic "ingress" {
-    for_each = var.health_check_port != null ? [1] : []
+    for_each = var.enable_alb && var.health_check_port != null ? [1] : []
     content {
       from_port       = var.health_check_port
       to_port         = var.health_check_port
       protocol        = "tcp"
-      security_groups = [aws_security_group.alb.id]
+      security_groups = [aws_security_group.alb[0].id]
     }
   }
 
@@ -213,18 +238,29 @@ resource "aws_security_group" "ecs_tasks" {
 
 # Application Load Balancer
 resource "aws_lb" "this" {
+  count = var.enable_alb ? 1 : 0
+
   name               = "${var.name_prefix}-alb"
   internal           = var.alb_internal
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = [aws_security_group.alb[0].id]
   subnets            = var.public_subnet_ids
 
   enable_deletion_protection = var.alb_deletion_protection
-  enable_http2              = true
+  enable_http2               = true
+
+  lifecycle {
+    precondition {
+      condition     = length(var.public_subnet_ids) > 0
+      error_message = "public_subnet_ids must be set when enable_alb is true."
+    }
+  }
 }
 
 # Target Group
 resource "aws_lb_target_group" "this" {
+  count = var.enable_alb ? 1 : 0
+
   name        = "${var.name_prefix}-tg"
   port        = var.container_port
   protocol    = "HTTP"
@@ -256,13 +292,15 @@ resource "aws_lb_target_group" "this" {
 
 # HTTP Listener
 resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.this.arn
+  count = var.enable_alb ? 1 : 0
+
+  load_balancer_arn = aws_lb.this[0].arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
     type             = var.enable_https ? "redirect" : "forward"
-    target_group_arn = var.enable_https ? null : aws_lb_target_group.this.arn
+    target_group_arn = var.enable_https ? null : aws_lb_target_group.this[0].arn
 
     dynamic "redirect" {
       for_each = var.enable_https ? [1] : []
@@ -277,9 +315,9 @@ resource "aws_lb_listener" "http" {
 
 # HTTPS Listener (optional)
 resource "aws_lb_listener" "https" {
-  count = var.enable_https ? 1 : 0
+  count = var.enable_alb && var.enable_https ? 1 : 0
 
-  load_balancer_arn = aws_lb.this.arn
+  load_balancer_arn = aws_lb.this[0].arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
@@ -287,7 +325,7 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.this.arn
+    target_group_arn = aws_lb_target_group.this[0].arn
   }
 }
 
@@ -307,10 +345,13 @@ resource "aws_ecs_service" "this" {
     assign_public_ip = var.assign_public_ip
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.this.arn
-    container_name   = local.container_name
-    container_port   = var.container_port
+  dynamic "load_balancer" {
+    for_each = var.enable_alb ? [1] : []
+    content {
+      target_group_arn = aws_lb_target_group.this[0].arn
+      container_name   = local.container_name
+      container_port   = var.container_port
+    }
   }
 
   deployment_minimum_healthy_percent = 50
@@ -362,3 +403,28 @@ resource "aws_appautoscaling_policy" "cpu" {
 
 # Data source for current region
 data "aws_region" "current" {}
+
+# ---------------------------------------------------------------------------
+# State moves: the ALB resources became conditional (count). These keep existing
+# deployments from destroying and recreating their ALB (and changing its DNS name)
+# when they pick up this change.
+# ---------------------------------------------------------------------------
+moved {
+  from = aws_security_group.alb
+  to   = aws_security_group.alb[0]
+}
+
+moved {
+  from = aws_lb.this
+  to   = aws_lb.this[0]
+}
+
+moved {
+  from = aws_lb_target_group.this
+  to   = aws_lb_target_group.this[0]
+}
+
+moved {
+  from = aws_lb_listener.http
+  to   = aws_lb_listener.http[0]
+}

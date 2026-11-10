@@ -34,27 +34,27 @@ output "task_role_name" {
 }
 
 output "alb_dns_name" {
-  value       = aws_lb.this.dns_name
-  description = "DNS name of the Application Load Balancer."
+  value       = one(aws_lb.this[*].dns_name)
+  description = "DNS name of the Application Load Balancer (null when enable_alb is false)."
 }
 
 output "alb_zone_id" {
-  value       = aws_lb.this.zone_id
+  value       = one(aws_lb.this[*].zone_id)
   description = "Hosted zone ID of the ALB (for Route53 alias records)."
 }
 
 output "alb_arn" {
-  value       = aws_lb.this.arn
+  value       = one(aws_lb.this[*].arn)
   description = "ARN of the Application Load Balancer."
 }
 
 output "target_group_arn" {
-  value       = aws_lb_target_group.this.arn
+  value       = one(aws_lb_target_group.this[*].arn)
   description = "ARN of the target group."
 }
 
 output "alb_security_group_id" {
-  value       = aws_security_group.alb.id
+  value       = one(aws_security_group.alb[*].id)
   description = "Security group ID of the ALB."
 }
 
@@ -69,6 +69,6 @@ output "log_group_name" {
 }
 
 output "websocket_url" {
-  value       = var.enable_https ? "wss://${aws_lb.this.dns_name}" : "ws://${aws_lb.this.dns_name}"
-  description = "WebSocket URL for connecting to the service."
+  value       = !var.enable_alb ? null : (var.enable_https ? "wss://${aws_lb.this[0].dns_name}" : "ws://${aws_lb.this[0].dns_name}")
+  description = "WebSocket URL for connecting to the service (null when enable_alb is false)."
 }
