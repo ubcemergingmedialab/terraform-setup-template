@@ -32,6 +32,16 @@ const guardrailVersion = process.env.GUARDRAIL_VERSION ?? 'DRAFT'
 // is skipped (only appropriate when the URL uses AWS_IAM auth instead).
 const sharedSecret = process.env.CHAT_SHARED_SECRET
 
+// Server-side request limits (set from Terraform). They bound what a client can ask
+// for, so a leaked shared secret can't be used to run up large Bedrock bills.
+function intFromEnv(name, fallback) {
+  const n = Number.parseInt(process.env[name] ?? '', 10)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+const maxTokensCeiling = intFromEnv('MAX_TOKENS_CEILING', 1024)
+const maxMessages = intFromEnv('MAX_MESSAGES', 50)
+const maxInputChars = intFromEnv('MAX_INPUT_CHARS', 20000)
+
 const bedrock = new BedrockRuntimeClient({ region })
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
@@ -113,13 +123,28 @@ export const handler = async (event) => {
       system.push({ text: body.systemPrompt.trim() })
     }
 
+    // Enforce request-size limits before spending anything on Bedrock.
+    if (messages.length > maxMessages) {
+      return reply(413, { error: `Too many messages (max ${maxMessages}).` })
+    }
+    const totalChars =
+      system.reduce((n, s) => n + s.text.length, 0) +
+      messages.reduce((n, m) => n + m.content[0].text.length, 0)
+    if (totalChars > maxInputChars) {
+      return reply(413, { error: `Input too long (max ${maxInputChars} characters).` })
+    }
+
     const response = await bedrock.send(
       new ConverseCommand({
         modelId,
         system: system.length > 0 ? system : undefined,
         messages,
         inferenceConfig: {
-          maxTokens: Number.isFinite(body.maxTokens) ? body.maxTokens : 512,
+          // Client value is clamped to [1, ceiling]; the client can't raise the cap.
+          maxTokens: Math.min(
+            Math.max(Number.isFinite(body.maxTokens) ? Math.floor(body.maxTokens) : 512, 1),
+            maxTokensCeiling,
+          ),
           temperature: Number.isFinite(body.temperature) ? body.temperature : 0.7,
         },
         // Converse takes the guardrail via guardrailConfig (not top-level params).
