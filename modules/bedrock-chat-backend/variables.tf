@@ -136,3 +136,43 @@ variable "tags" {
   description = "Extra tags applied to resources that support tagging."
   default     = {}
 }
+
+variable "reserved_concurrency" {
+  type        = number
+  description = "Reserved concurrent executions for the Lambda; caps parallel Bedrock calls. -1 = unreserved. AWS requires >= 10 unreserved concurrency to remain in the account."
+  default     = -1
+  validation {
+    condition     = var.reserved_concurrency >= -1
+    error_message = "reserved_concurrency must be -1 (unreserved) or >= 0."
+  }
+}
+
+variable "alarm_email" {
+  type        = string
+  description = "Email for usage alarms (invocation spike, throttling). Empty disables the alarms and SNS topic. The recipient must confirm the SNS subscription email."
+  default     = ""
+}
+
+variable "invocations_alarm_threshold" {
+  type        = number
+  description = "Alarm when Lambda invocations in one hour exceed this number."
+  default     = 500
+}
+
+variable "max_tokens_ceiling" {
+  type        = number
+  description = "Upper bound on maxTokens the handler passes to Bedrock, regardless of what the client requests."
+  default     = 1024
+}
+
+variable "max_messages" {
+  type        = number
+  description = "Maximum number of messages the handler accepts per request."
+  default     = 50
+}
+
+variable "max_input_chars" {
+  type        = number
+  description = "Maximum total characters (system prompt + all messages) the handler accepts per request."
+  default     = 20000
+}

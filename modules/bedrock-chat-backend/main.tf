@@ -12,6 +12,12 @@ locals {
     { BEDROCK_MODEL_ID = var.bedrock_model_id },
     local.guardrail_env,
     var.shared_secret != "" ? { CHAT_SHARED_SECRET = var.shared_secret } : {},
+    # Server-side request limits enforced by the handler (cap what a client can ask for).
+    {
+      MAX_TOKENS_CEILING = tostring(var.max_tokens_ceiling)
+      MAX_MESSAGES       = tostring(var.max_messages)
+      MAX_INPUT_CHARS    = tostring(var.max_input_chars)
+    },
     var.environment_variables,
   )
 }
@@ -146,15 +152,17 @@ resource "aws_cloudwatch_log_group" "lambda" {
 }
 
 resource "aws_lambda_function" "this" {
-  function_name    = "${var.name_prefix}-chat-backend"
-  role             = aws_iam_role.lambda.arn
-  handler          = var.handler
-  runtime          = var.runtime
-  architectures    = [var.architecture]
-  memory_size      = var.memory_mb
-  timeout          = var.timeout_seconds
-  filename         = data.archive_file.lambda_zip.output_path
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  function_name = "${var.name_prefix}-chat-backend"
+  role          = aws_iam_role.lambda.arn
+  handler       = var.handler
+  runtime       = var.runtime
+  architectures = [var.architecture]
+  memory_size   = var.memory_mb
+  timeout       = var.timeout_seconds
+  # -1 = unreserved. A value >= 0 caps parallel executions (and so parallel Bedrock spend).
+  reserved_concurrent_executions = var.reserved_concurrency
+  filename                       = data.archive_file.lambda_zip.output_path
+  source_code_hash               = data.archive_file.lambda_zip.output_base64sha256
 
   environment {
     variables = local.environment_variables
@@ -259,4 +267,58 @@ resource "aws_lambda_permission" "public_url_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.this.function_name
   principal     = "*"
+}
+
+# ------------------------------------------------------------------------------
+# Usage alarms (optional; created only when alarm_email is set)
+#
+# Fast-reacting guard against a leaked shared secret: alert when invocation volume
+# spikes, or when the concurrency cap is being hit.
+# ------------------------------------------------------------------------------
+resource "aws_sns_topic" "alarms" {
+  count = var.alarm_email != "" ? 1 : 0
+  name  = "${var.name_prefix}-chat-alarms"
+  tags  = var.tags
+}
+
+resource "aws_sns_topic_subscription" "alarm_email" {
+  count     = var.alarm_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.alarms[0].arn
+  protocol  = "email"
+  endpoint  = var.alarm_email
+}
+
+resource "aws_cloudwatch_metric_alarm" "invocations_spike" {
+  count               = var.alarm_email != "" ? 1 : 0
+  alarm_name          = "${var.name_prefix}-chat-invocations-high"
+  alarm_description   = "Chat Lambda invoked more than ${var.invocations_alarm_threshold} times in an hour. Possible shared-secret abuse."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Invocations"
+  dimensions          = { FunctionName = aws_lambda_function.this.function_name }
+  statistic           = "Sum"
+  period              = 3600
+  evaluation_periods  = 1
+  threshold           = var.invocations_alarm_threshold
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alarms[0].arn]
+  tags                = var.tags
+}
+
+# Only meaningful when reserved concurrency is set: throttles mean the cap is being hit.
+resource "aws_cloudwatch_metric_alarm" "throttles" {
+  count               = var.alarm_email != "" && var.reserved_concurrency >= 0 ? 1 : 0
+  alarm_name          = "${var.name_prefix}-chat-throttled"
+  alarm_description   = "Chat Lambda is being throttled by its reserved concurrency limit."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Throttles"
+  dimensions          = { FunctionName = aws_lambda_function.this.function_name }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alarms[0].arn]
+  tags                = var.tags
 }

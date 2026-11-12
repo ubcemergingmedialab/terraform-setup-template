@@ -2,6 +2,9 @@ client_name  = "poetry"
 project_name = "chat"
 environment  = "dev"
 aws_region   = "ca-central-1"
+alarm_email = "dante.cerron@ubc.ca"
+max_input_chars = 20000
+max_messages = 50
 
 tags = {
   Owner = "emerging-media-lab"
