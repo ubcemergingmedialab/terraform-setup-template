@@ -48,7 +48,8 @@ module "chat_backend" {
 
   # Bedrock Guardrail: content filtering + prompt-attack detection, applied
   # server-side on every Converse call. Invisible to the game client.
-  enable_guardrail = var.enable_guardrail
+  enable_guardrail        = var.enable_guardrail
+  guardrail_denied_topics = var.guardrail_denied_topics
 
   # Public Function URL (NONE auth) gated by a shared secret the handler checks.
   # IAM-user SigV4 auth proved unreliable for the scoped invoker on this account, so

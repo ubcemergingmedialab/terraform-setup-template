@@ -104,3 +104,13 @@ variable "enable_guardrail" {
   description = "Create a Bedrock Guardrail and apply it on every chat request (content filtering + prompt-attack detection)."
   default     = true
 }
+
+variable "guardrail_denied_topics" {
+  type = list(object({
+    name       = string
+    definition = string
+    examples   = optional(list(string), [])
+  }))
+  description = "Denied topics for the Bedrock Guardrail (blocked in input and output). Empty = no topic policy. Only used when enable_guardrail = true."
+  default     = []
+}

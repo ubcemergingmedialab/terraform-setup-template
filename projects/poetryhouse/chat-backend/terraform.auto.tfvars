@@ -23,3 +23,12 @@ bedrock_model_id = "global.anthropic.claude-sonnet-4-6"
 # bedrock_model_arns = [
 #   "arn:aws:bedrock:ca-central-1::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0"
 # ]
+
+# Bedrock Guardrail denied topics (blocked in input and output). Empty until stakeholders decide.
+# guardrail_denied_topics = [
+#   {
+#     name       = "example-topic"
+#     definition = "Short natural-language description of what to block."
+#     examples   = ["Example phrase a user might say."]
+#   },
+# ]
