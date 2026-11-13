@@ -176,3 +176,13 @@ variable "max_input_chars" {
   description = "Maximum total characters (system prompt + all messages) the handler accepts per request."
   default     = 20000
 }
+
+variable "guardrail_denied_topics" {
+  type = list(object({
+    name       = string
+    definition = string
+    examples   = optional(list(string), [])
+  }))
+  description = "Denied topics for the Bedrock Guardrail (blocked in input and output). Each needs a name and a short definition; examples are optional sample phrases. Empty (default) adds no topic policy. Only used when enable_guardrail = true."
+  default     = []
+}

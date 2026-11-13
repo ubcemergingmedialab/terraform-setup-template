@@ -70,6 +70,22 @@ resource "aws_bedrock_guardrail" "this" {
     }
   }
 
+  # Denied topics: blocked in both user input and model output. Omitted when the list is empty.
+  dynamic "topic_policy_config" {
+    for_each = length(var.guardrail_denied_topics) > 0 ? [1] : []
+    content {
+      dynamic "topics_config" {
+        for_each = var.guardrail_denied_topics
+        content {
+          name       = topics_config.value.name
+          definition = topics_config.value.definition
+          examples   = topics_config.value.examples
+          type       = "DENY"
+        }
+      }
+    }
+  }
+
   tags = var.tags
 }
 
