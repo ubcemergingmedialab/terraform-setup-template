@@ -818,6 +818,7 @@ module "episode_api" {
     { method = "GET", path = "/instructor/scenarios", function_name = "authenticated", authorization_type = "JWT" },
     { method = "POST", path = "/instructor/scenarios", function_name = "authenticated", authorization_type = "JWT" },
     { method = "PATCH", path = "/instructor/scenarios/{id}", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "GET", path = "/instructor/scenario-links", function_name = "authenticated", authorization_type = "JWT" },
     { method = "POST", path = "/instructor/scenario-links", function_name = "authenticated", authorization_type = "JWT" },
     { method = "POST", path = "/instructor/scenario-links/{id}/revoke", function_name = "authenticated", authorization_type = "JWT" },
     { method = "GET", path = "/instructor/scenario-links/{id}/analytics", function_name = "authenticated", authorization_type = "JWT" },
