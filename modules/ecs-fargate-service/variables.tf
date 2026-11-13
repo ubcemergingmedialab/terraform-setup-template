@@ -50,6 +50,12 @@ variable "environment_variables" {
   default     = {}
 }
 
+variable "secrets" {
+  type        = map(string)
+  description = "Secrets injected into the container as environment variables. Map of container env var name => Secrets Manager secret ARN (or SSM parameter ARN). ECS resolves these at task start; the task execution role is granted read access to every ARN listed. Values never appear in the task definition or logs."
+  default     = {}
+}
+
 variable "task_policy_json" {
   type        = string
   description = "IAM policy JSON for task role (application permissions). Leave empty for no custom permissions."
@@ -63,7 +69,20 @@ variable "vpc_id" {
 
 variable "public_subnet_ids" {
   type        = list(string)
-  description = "Public subnet IDs for the Application Load Balancer."
+  description = "Public subnet IDs for the Application Load Balancer. Required when enable_alb is true; ignored otherwise."
+  default     = []
+}
+
+variable "enable_alb" {
+  type        = bool
+  description = "Create an Application Load Balancer, target group and listeners in front of the service. Set false for workers that take no inbound traffic (e.g. outbound-only agent workers); the ALB and its public IPs then cost nothing."
+  default     = true
+}
+
+variable "container_health_check_command" {
+  type        = list(string)
+  description = "ECS container health check command, e.g. [\"CMD-SHELL\", \"curl -fsS http://localhost:8081/health || exit 1\"]. ECS ignores the Dockerfile HEALTHCHECK, so use this when enable_alb is false (no target group to health-check). Empty = no container health check."
+  default     = []
 }
 
 variable "private_subnet_ids" {

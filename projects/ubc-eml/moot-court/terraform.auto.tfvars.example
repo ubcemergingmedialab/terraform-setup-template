@@ -1,0 +1,40 @@
+# Copy to terraform.auto.tfvars and fill in. The sensitive values (livekit_api_key,
+# livekit_api_secret, livekit_webhook_api_key, simli_api_key) must NOT go here —
+# set them as SENSITIVE variables in the HCP workspace UI instead.
+
+client_name  = "ubc-eml"
+project_name = "moot-court"
+environment  = "dev"
+aws_region   = "ca-central-1"
+
+tags = {
+  Owner = "media-lab"
+}
+
+# The single approved user. Cognito emails this address a temporary password on
+# first apply; they set a permanent one at the hosted-UI login.
+admin_email = "someone@ubc.ca"
+
+# LiveKit Cloud project URL (public; safe to commit).
+livekit_url = "wss://your-project.livekit.cloud"
+
+# Optional local-dev origins for the SPA login callback (CloudFront URL is added
+# automatically).
+extra_callback_urls = ["http://localhost:5173"]
+extra_logout_urls   = ["http://localhost:5173"]
+
+# Agent image tag CI pushes to ECR before apply.
+agent_image_tag = "latest"
+
+# Judge voice + behavior.
+polly_voice          = "Tiffany"
+polly_engine         = "generative"
+moot_player_position = "Appellant"
+moot_room_name       = "mootcourt"
+
+# bedrock_model_id = "global.anthropic.claude-sonnet-4-6"
+
+# --- DO NOT put these here; set them in HCP as sensitive vars ---
+# livekit_api_key    = "..."
+# livekit_api_secret = "..."
+# simli_api_key      = "..."

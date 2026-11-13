@@ -31,6 +31,15 @@ jobs:
         working-directory: projects/poetryhouse/chat-backend/lambda/chat-backend
         run: npm ci
 
+      - name: Build MootCourt token-service Lambda bundle
+        # HCP zips the committed dist/ bundle. Fail if it is stale relative to
+        # handler.mjs / package-lock.json so a source change can't ship unbuilt.
+        working-directory: projects/ubc-eml/moot-court/lambda/token-service
+        run: |
+          npm ci
+          npm run build
+          git diff --exit-code -- dist
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.9.0"
