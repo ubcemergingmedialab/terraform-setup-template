@@ -31,6 +31,7 @@ export async function handler(event) {
     if (method === 'PATCH' && id && path.includes('/instructor/scenarios/')) return await updateScenario(instructorId, id, parseBody(event))
     if (method === 'GET' && path.endsWith('/instructor/scenario-links')) return await listScenarioLinks(instructorId)
     if (method === 'POST' && path.endsWith('/instructor/scenario-links')) return await createScenarioLink(instructorId, parseBody(event))
+    if (method === 'GET' && path.endsWith('/instructor/scenario-links/analytics')) return await linkAnalyticsBatch(event, instructorId, roles.isAdmin)
     if (method === 'POST' && id && path.endsWith('/revoke')) return await revokeLink(instructorId, id)
     if (method === 'GET' && id && path.endsWith('/analytics') && path.includes('/scenario-links/')) return await linkAnalytics(instructorId, id, roles.isAdmin)
     if (method === 'GET' && id && path.endsWith('/analytics') && path.includes('/scenarios/')) return await scenarioAnalytics(instructorId, id, roles.isAdmin)
@@ -164,6 +165,26 @@ async function linkAnalytics(instructorId, rawId, isAdmin) {
   if (link.instructor_id !== instructorId && !isAdmin) throw new ApiError(403, 'FORBIDDEN', 'You do not have permission to access this resource.')
   const metrics = records(await execute('SELECT COUNT(*) AS attempt_count, AVG(score) AS avg_score, STDDEV(score) AS stddev_score, AVG(time_spent_seconds) AS avg_time_seconds FROM attempt WHERE scenario_link_id = :id', [['id', id]]))[0]
   return ok({ scenarioLinkId: id, audienceName: link.audience_name, ...formatAnalytics(metrics) })
+}
+
+async function linkAnalyticsBatch(event, instructorId, isAdmin) {
+  const rawIds = event.queryStringParameters?.linkIds ?? ''
+  const ids = [...new Set(rawIds.split(',').map((value) => value.trim()).filter(Boolean))]
+  if (ids.length === 0) throw new ApiError(400, 'VALIDATION_ERROR', 'The "linkIds" query parameter is required.')
+  const validatedIds = ids.map((value) => requireUuid(value, 'linkIds'))
+  const idParameters = validatedIds.map((value, index) => [`link_id_${index}`, value])
+  const rows = records(await execute(`
+    SELECT sl.id AS scenario_link_id, sl.audience_name,
+      COUNT(a.id) AS attempt_count, AVG(a.score) AS avg_score,
+      STDDEV(a.score) AS stddev_score, AVG(a.time_spent_seconds) AS avg_time_seconds
+    FROM scenario_link sl
+    LEFT JOIN attempt a ON a.scenario_link_id = sl.id
+    WHERE sl.id IN (${validatedIds.map((_, index) => `:link_id_${index}`).join(', ')})
+      AND (sl.instructor_id = :instructor_id OR :is_admin = TRUE)
+    GROUP BY sl.id, sl.audience_name, sl.created_at
+    ORDER BY sl.created_at
+  `, [...idParameters, ['instructor_id', instructorId], ['is_admin', isAdmin]]))
+  return ok({ statistics: rows.map((row) => ({ scenarioLinkId: row.scenario_link_id, audienceName: row.audience_name, ...formatAnalytics(row) })) })
 }
 
 async function scenarioAnalytics(instructorId, rawId, isAdmin) {
