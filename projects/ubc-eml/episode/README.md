@@ -51,7 +51,7 @@ After apply, get `cognito_user_pool_id`, `cognito_user_pool_client_id`, and
 .\scripts\create-cognito-user.ps1 `
 	-UserPoolId "<cognito_user_pool_id>" `
 	-Email "admin@example.com" `
-	-Group admin
+	-Group instructor
 ```
 
 The script prompts for a permanent password, creates the user without sending
