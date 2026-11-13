@@ -1,5 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[\w-]+_[0-9a-zA-Z]+$')]
     [string]$UserPoolId,
 
     [Parameter(Mandatory = $true)]

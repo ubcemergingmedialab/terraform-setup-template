@@ -76,7 +76,10 @@ export function parseDateTime(value, field) {
 
 export function getClaims(event) {
   const claims = event.requestContext?.authorizer?.jwt?.claims ?? {}
-  if (!claims.sub) throw new ApiError(401, 'UNAUTHORIZED', 'Missing or invalid authorization token.')
+  const expiresAt = Number(claims.exp)
+  if (!claims.sub || !Number.isFinite(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'Missing, invalid, or expired authorization token.')
+  }
   return claims
 }
 

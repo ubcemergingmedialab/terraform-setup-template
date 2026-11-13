@@ -29,6 +29,7 @@ export async function handler(event) {
     if (method === 'GET' && path.endsWith('/instructor/scenarios')) return await listScenarios(instructorId)
     if (method === 'POST' && path.endsWith('/instructor/scenarios')) return await createScenario(instructorId, parseBody(event))
     if (method === 'PATCH' && id && path.includes('/instructor/scenarios/')) return await updateScenario(instructorId, id, parseBody(event))
+    if (method === 'GET' && path.endsWith('/instructor/scenario-links')) return await listScenarioLinks(instructorId)
     if (method === 'POST' && path.endsWith('/instructor/scenario-links')) return await createScenarioLink(instructorId, parseBody(event))
     if (method === 'POST' && id && path.endsWith('/revoke')) return await revokeLink(instructorId, id)
     if (method === 'GET' && id && path.endsWith('/analytics') && path.includes('/scenario-links/')) return await linkAnalytics(instructorId, id, roles.isAdmin)
@@ -54,10 +55,25 @@ async function ensureInstructor(claims) {
 
 async function listScenarios(instructorId) {
   const rows = records(await execute(`
-    SELECT id, title, private, patient_id, created_at, updated_at
-    FROM scenario WHERE created_by = :instructor_id ORDER BY updated_at DESC
+    SELECT s.title, s.emotive_state, p.name, s.created_at, s.updated_at, s.private
+    FROM scenario s
+    JOIN patient p on s.patient_id = p.id
+    WHERE s.created_by = :instructor_id ORDER BY updated_at DESC
   `, [['instructor_id', instructorId]]))
   return ok({ scenarios: rows.map(formatScenarioSummary) })
+}
+
+async function listScenarioLinks(instructorId) {
+  const rows = records(await execute(`
+    SELECT sl.slug, sl.audience_name, s.private,
+      sl.created_at, sl.expires_at, sl.completion_count,
+      s.title AS scenario_title
+    FROM scenario_link sl
+    JOIN scenario s ON s.id = sl.scenario_id
+    WHERE sl.instructor_id = :instructor_id
+    ORDER BY sl.created_at DESC
+  `, [['instructor_id', instructorId]]))
+  return ok({ links: rows.map((row) => ({ ...formatLink(row), scenarioTitle: row.scenario_title })) })
 }
 
 async function createScenario(instructorId, body) {
