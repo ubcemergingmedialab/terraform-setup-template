@@ -20,8 +20,8 @@ livekit_url = "wss://your-project.livekit.cloud"
 
 # Optional local-dev origins for the SPA login callback (CloudFront URL is added
 # automatically).
-extra_callback_urls = ["http://localhost:5173"]
-extra_logout_urls   = ["http://localhost:5173"]
+extra_callback_urls = ["http://localhost:5173", "http://localhost:5174"]
+extra_logout_urls   = ["http://localhost:5173", "http://localhost:5174"]
 
 # Agent image tag CI pushes to ECR before apply.
 agent_image_tag = "latest"
