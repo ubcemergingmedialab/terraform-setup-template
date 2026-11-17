@@ -13,8 +13,8 @@ admin_email = "someone@ubc.ca"
 # TODO: set your LiveKit Cloud project URL.
 livekit_url = "wss://your-project.livekit.cloud"
 
-extra_callback_urls = ["http://localhost:5173"]
-extra_logout_urls   = ["http://localhost:5173"]
+extra_callback_urls = ["http://localhost:5173", "http://localhost:5174"]
+extra_logout_urls   = ["http://localhost:5173", "http://localhost:5174"]
 
 agent_image_tag = "latest"
 
