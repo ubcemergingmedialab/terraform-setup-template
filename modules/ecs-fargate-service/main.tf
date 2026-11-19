@@ -339,6 +339,15 @@ resource "aws_ecs_service" "this" {
 
   platform_version = "LATEST"
 
+  # Fargate usage is billed per task, so cost allocation tags must be on the
+  # task, not just the cluster/service. Copy the service's tags (including the
+  # provider default_tags: Client, Project, Environment) onto each task, and add
+  # the ECS managed tags (aws:ecs:clusterName, aws:ecs:serviceName).
+  # Applies to tasks started after this change, so existing tasks need a new
+  # deployment to pick the tags up.
+  propagate_tags          = "SERVICE"
+  enable_ecs_managed_tags = true
+
   network_configuration {
     subnets          = var.private_subnet_ids
     security_groups  = [aws_security_group.ecs_tasks.id]
