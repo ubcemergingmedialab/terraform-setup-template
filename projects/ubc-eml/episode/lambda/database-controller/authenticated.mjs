@@ -35,6 +35,9 @@ export async function handler(event) {
     if (method === 'POST' && id && path.endsWith('/revoke')) return await revokeLink(instructorId, id)
     if (method === 'GET' && id && path.endsWith('/analytics') && path.includes('/scenario-links/')) return await linkAnalytics(instructorId, id, roles.isAdmin)
     if (method === 'GET' && id && path.endsWith('/analytics') && path.includes('/scenarios/')) return await scenarioAnalytics(instructorId, id, roles.isAdmin)
+    if (method === 'GET' && path.endsWith('/instructor/me')) {
+      return ok({ instructorId, subject: claims.sub, email: claims.email ?? null })
+    }
     throw new ApiError(404, 'NOT_FOUND', 'The requested resource was not found.')
   } catch (error) {
     return handleError(error)
