@@ -824,5 +824,6 @@ module "episode_api" {
     { method = "POST", path = "/instructor/scenario-links/{id}/revoke", function_name = "authenticated", authorization_type = "JWT" },
     { method = "GET", path = "/instructor/scenario-links/{id}/analytics", function_name = "authenticated", authorization_type = "JWT" },
     { method = "GET", path = "/instructor/scenarios/{id}/analytics", function_name = "authenticated", authorization_type = "JWT" },
+    { method = "GET", path = "/instructor/me", function_name = "authenticated", authorization_type = "JWT" },
   ]
 }
