@@ -21,7 +21,7 @@ export async function handler(event) {
   try {
     const claims = getClaims(event)
     const roles = requireInstructorRole(claims)
-    const instructorId = await ensureInstructor(claims)
+    const instructorId = await getRegisteredInstructor(claims)
     const method = methodOf(event)
     const path = event.rawPath ?? event.requestContext?.http?.path ?? ''
     const id = pathParameter(event, 'id')
@@ -44,17 +44,16 @@ export async function handler(event) {
   }
 }
 
-async function ensureInstructor(claims) {
+async function getRegisteredInstructor(claims) {
   const id = requireUuid(claims.sub, 'subject')
-  const email = claims.email ?? `${id}@cognito.invalid`
-  const firstName = claims.given_name ?? ''
-  const lastName = claims.family_name ?? ''
-  await execute(`
-    INSERT INTO instructor (id, first_name, last_name, email)
-    VALUES (:id, :first_name, :last_name, :email)
-    ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name, email = EXCLUDED.email
-  `, [['id', id], ['first_name', firstName], ['last_name', lastName], ['email', email]])
-  return id
+  const instructor = records(await execute(
+    'SELECT id FROM instructor WHERE id = :id',
+    [['id', id]],
+  ))[0]
+  if (!instructor) {
+    throw new ApiError(403, 'INSTRUCTOR_NOT_REGISTERED', 'This Cognito user is not registered as an instructor.')
+  }
+  return instructor.id
 }
 
 async function listScenarios(instructorId) {
