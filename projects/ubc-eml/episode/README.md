@@ -55,9 +55,9 @@ After apply, get `cognito_user_pool_id`, `cognito_user_pool_client_id`, and
 ```
 
 The script prompts for a permanent password, creates the user without sending
-a welcome email, and adds the user to the selected Cognito group. The first
-successful authenticated API request automatically creates the matching
-`instructor` row using the Cognito user's `sub` claim.
+a welcome email, and adds the user to the selected Cognito group. The matching
+`instructor` row must already exist in PostgreSQL using the Cognito user's `sub`
+as its `id`; authentication alone does not grant or provision application access.
 
 ### Test with Postman
 
