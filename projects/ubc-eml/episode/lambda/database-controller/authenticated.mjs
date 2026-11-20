@@ -25,9 +25,15 @@ export async function handler(event) {
     const method = methodOf(event)
     const path = event.rawPath ?? event.requestContext?.http?.path ?? ''
     const id = pathParameter(event, 'id')
+    const recordId = pathParameter(event, 'recordId')
+    const medicationTypeId = pathParameter(event, 'medicationTypeId')
 
     if (method === 'GET' && path.endsWith('/instructor/scenarios')) return await listScenarios(instructorId)
     if (method === 'POST' && path.endsWith('/instructor/scenarios')) return await createScenario(instructorId, parseBody(event))
+    if (method === 'GET' && id && path.includes('/instructor/scenarios/') && path.endsWith('/mar-records')) return await listMarRecords(instructorId, id)
+    if (method === 'POST' && id && path.includes('/instructor/scenarios/') && path.endsWith('/mar-records')) return await createMarRecord(instructorId, id, parseBody(event))
+    if (method === 'PATCH' && id && recordId && path.includes('/mar-records/')) return await updateMarRecord(instructorId, id, recordId, parseBody(event))
+    if (method === 'DELETE' && id && recordId && path.includes('/mar-records/')) return await deleteMarRecord(instructorId, id, recordId)
     if (method === 'PATCH' && id && path.includes('/instructor/scenarios/')) return await updateScenario(instructorId, id, parseBody(event))
     if (method === 'GET' && path.endsWith('/instructor/scenario-links')) return await listScenarioLinks(instructorId)
     if (method === 'POST' && path.endsWith('/instructor/scenario-links')) return await createScenarioLink(instructorId, parseBody(event))
@@ -36,8 +42,12 @@ export async function handler(event) {
     if (method === 'GET' && id && path.endsWith('/analytics') && path.includes('/scenario-links/')) return await linkAnalytics(instructorId, id, roles.isAdmin)
     if (method === 'GET' && id && path.endsWith('/analytics') && path.includes('/scenarios/')) return await scenarioAnalytics(instructorId, id, roles.isAdmin)
     if (method === 'GET' && path.endsWith('/instructor/me')) {
-      return ok({ instructorId, subject: claims.sub, email: claims.email ?? null })
+      return ok({ instructorId, subject: claims.sub, email: claims.username ?? null })
     }
+    if (method === 'GET' && id && path.includes('/instructor/scenarios/') && path.endsWith('/medication-types')) return await listMedicationTypes(instructorId, id)
+    if (method === 'POST' && id && path.includes('/instructor/scenarios/') && path.endsWith('/medication-types')) return await createMedicationType(instructorId, id, parseBody(event))
+    if (method === 'PATCH' && id && medicationTypeId && path.includes('/medication-types/')) return await updateMedicationType(instructorId, id, medicationTypeId, parseBody(event))
+    if (method === 'DELETE' && id && medicationTypeId && path.includes('/medication-types/')) return await deleteMedicationType(instructorId, id, medicationTypeId)
     throw new ApiError(404, 'NOT_FOUND', 'The requested resource was not found.')
   } catch (error) {
     return handleError(error)
@@ -58,19 +68,20 @@ async function getRegisteredInstructor(claims) {
 
 async function listScenarios(instructorId) {
   const rows = records(await execute(`
-    SELECT s.title, s.emotive_state, p.name, s.created_at, s.updated_at, s.private
+    SELECT s.id, s.title, s.emotive_state, p.id AS patient_id, p.name,
+      s.created_at, s.updated_at, s.private
     FROM scenario s
     JOIN patient p on s.patient_id = p.id
-    WHERE s.created_by = :instructor_id ORDER BY updated_at DESC
+    WHERE s.created_by = :instructor_id ORDER BY s.updated_at DESC
   `, [['instructor_id', instructorId]]))
   return ok({ scenarios: rows.map(formatScenarioSummary) })
 }
 
 async function listScenarioLinks(instructorId) {
   const rows = records(await execute(`
-    SELECT sl.slug, sl.audience_name, s.private,
-      sl.created_at, sl.expires_at, sl.completion_count,
-      s.title AS scenario_title
+    SELECT sl.id, sl.scenario_id, sl.instructor_id, sl.slug,
+      sl.audience_name, s.private, sl.created_at, sl.expires_at,
+      sl.revoked_at, sl.completion_count, s.title AS scenario_title
     FROM scenario_link sl
     JOIN scenario s ON s.id = sl.scenario_id
     WHERE sl.instructor_id = :instructor_id
@@ -205,20 +216,204 @@ async function scenarioAnalytics(instructorId, rawId, isAdmin) {
   return ok({ scenarioId: id, overall, byLink })
 }
 
-async function insertMedicationOrder(transactionId, scenarioId, order) {
-  await execute(`INSERT INTO medication_order (scenario_id, medication_type_id, dose, route, form, frequency, indication, ordered_at_days_offset, status, is_expected) VALUES (:scenario_id, :medication_type_id, :dose, :route, :form, :frequency, :indication, :offset, :status, :expected)`, [
-    ['scenario_id', scenarioId], ['medication_type_id', requireUuid(order.medicationTypeId, 'medicationTypeId')], ['dose', requireString(order.dose, 'dose', { max: 256 })], ['route', requireString(order.route, 'route', { max: 100 })], ['form', requireString(order.form, 'form', { max: 100 })], ['frequency', requireString(order.frequency, 'frequency', { max: 100 })], ['indication', requireString(order.indication, 'indication')], ['offset', requireInteger(order.orderedAtDaysOffset, 'orderedAtDaysOffset')], ['status', requireString(order.status, 'status', { max: 20 })], ['expected', Boolean(order.isExpected)],
-  ], transactionId)
+async function requireOwnedScenario(instructorId, rawScenarioId) {
+  const scenarioId = requireUuid(rawScenarioId, 'scenarioId')
+  const scenario = records(await execute(
+    'SELECT id, created_by FROM scenario WHERE id = :id',
+    [['id', scenarioId]],
+  ))[0]
+  if (!scenario) throw new ApiError(404, 'NOT_FOUND', 'Scenario not found.')
+  if (scenario.created_by !== instructorId) {
+    throw new ApiError(403, 'FORBIDDEN', 'You do not have permission to access this resource.')
+  }
+  return scenarioId
 }
 
-async function insertMarRecord(transactionId, scenarioId, mar) {
-  await execute(`INSERT INTO mar_record (scenario_id, medication_name, dose, route, time_offset_minutes, site, initials, notes) VALUES (:scenario_id, :medication_name, :dose, :route, :offset, :site, :initials, :notes)`, [
-    ['scenario_id', scenarioId], ['medication_name', requireString(mar.medicationName, 'medicationName', { max: 256 })], ['dose', requireString(mar.dose, 'dose', { max: 256 })], ['route', requireString(mar.route, 'route', { max: 100 })], ['offset', requireInteger(mar.timeOffsetMinutes, 'timeOffsetMinutes')], ['site', requireString(mar.site, 'site', { max: 256 })], ['initials', requireString(mar.initials, 'initials', { max: 20 })], ['notes', mar.notes ?? null],
-  ], transactionId)
+function optionalMarString(body, field, column, max, values, sets) {
+  if (field in body) {
+    const value = body[field] === null ? null : requireString(body[field], field, { max })
+    sets.push(`${column} = :${column}`)
+    values.push([column, value])
+  }
+}
+
+async function listMarRecords(instructorId, rawScenarioId) {
+  const scenarioId = await requireOwnedScenario(instructorId, rawScenarioId)
+  const rows = records(await execute(`
+    SELECT id, scenario_id, medication_name, dose, route, time_offset_minutes, site, initials, notes
+    FROM mar_record
+    WHERE scenario_id = :scenario_id
+    ORDER BY time_offset_minutes, id
+  `, [['scenario_id', scenarioId]]))
+  return ok({ marRecords: rows.map(formatMarRecord) })
+}
+
+async function createMarRecord(instructorId, rawScenarioId, body) {
+  const scenarioId = await requireOwnedScenario(instructorId, rawScenarioId)
+  const id = uuid()
+  const medicationName = requireString(body.medicationName, 'medicationName', { max: 256 })
+  const dose = requireString(body.dose, 'dose', { max: 256 })
+  const route = requireString(body.route, 'route', { max: 100 })
+  const timeOffsetMinutes = requireInteger(body.timeOffsetMinutes, 'timeOffsetMinutes')
+  const site = body.site == null ? null : requireString(body.site, 'site', { max: 256 })
+  const initials = body.initials == null ? null : requireString(body.initials, 'initials', { max: 20 })
+  const notes = body.notes == null ? null : requireString(body.notes, 'notes', { max: 10000 })
+
+  const row = records(await execute(`
+    INSERT INTO mar_record (id, scenario_id, medication_name, dose, route, time_offset_minutes, site, initials, notes)
+    VALUES (:id, :scenario_id, :medication_name, :dose, :route, :time_offset_minutes, :site, :initials, :notes)
+    RETURNING id, scenario_id, medication_name, dose, route, time_offset_minutes, site, initials, notes
+  `, [
+    ['id', id], ['scenario_id', scenarioId], ['medication_name', medicationName], ['dose', dose],
+    ['route', route], ['time_offset_minutes', timeOffsetMinutes], ['site', site], ['initials', initials], ['notes', notes],
+  ]))[0]
+  return ok(formatMarRecord(row), 201)
+}
+
+async function updateMarRecord(instructorId, rawScenarioId, rawRecordId, body) {
+  const scenarioId = await requireOwnedScenario(instructorId, rawScenarioId)
+  const recordId = requireUuid(rawRecordId, 'recordId')
+  const allowed = ['medicationName', 'dose', 'route', 'timeOffsetMinutes', 'site', 'initials', 'notes']
+  if (!Object.keys(body).some((field) => allowed.includes(field))) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'At least one MAR update field is required.')
+  }
+
+  const existing = records(await execute(
+    'SELECT id FROM mar_record WHERE id = :id AND scenario_id = :scenario_id',
+    [['id', recordId], ['scenario_id', scenarioId]],
+  ))[0]
+  if (!existing) throw new ApiError(404, 'NOT_FOUND', 'MAR record not found.')
+
+  const values = [['id', recordId], ['scenario_id', scenarioId]]
+  const sets = []
+  if ('medicationName' in body) { sets.push('medication_name = :medication_name'); values.push(['medication_name', requireString(body.medicationName, 'medicationName', { max: 256 })]) }
+  if ('dose' in body) { sets.push('dose = :dose'); values.push(['dose', requireString(body.dose, 'dose', { max: 256 })]) }
+  if ('route' in body) { sets.push('route = :route'); values.push(['route', requireString(body.route, 'route', { max: 100 })]) }
+  if ('timeOffsetMinutes' in body) { sets.push('time_offset_minutes = :time_offset_minutes'); values.push(['time_offset_minutes', requireInteger(body.timeOffsetMinutes, 'timeOffsetMinutes')]) }
+  optionalMarString(body, 'site', 'site', 256, values, sets)
+  optionalMarString(body, 'initials', 'initials', 20, values, sets)
+  optionalMarString(body, 'notes', 'notes', 10000, values, sets)
+
+  const row = records(await execute(`
+    UPDATE mar_record
+    SET ${sets.join(', ')}
+    WHERE id = :id AND scenario_id = :scenario_id
+    RETURNING id, scenario_id, medication_name, dose, route, time_offset_minutes, site, initials, notes
+  `, values))[0]
+  return ok(formatMarRecord(row))
+}
+
+async function deleteMarRecord(instructorId, rawScenarioId, rawRecordId) {
+  const scenarioId = await requireOwnedScenario(instructorId, rawScenarioId)
+  const recordId = requireUuid(rawRecordId, 'recordId')
+  const existing = records(await execute(
+    'SELECT id FROM mar_record WHERE id = :id AND scenario_id = :scenario_id',
+    [['id', recordId], ['scenario_id', scenarioId]],
+  ))[0]
+  if (!existing) throw new ApiError(404, 'NOT_FOUND', 'MAR record not found.')
+  await execute(
+    'DELETE FROM mar_record WHERE id = :id AND scenario_id = :scenario_id',
+    [['id', recordId], ['scenario_id', scenarioId]],
+  )
+  return ok({ id: recordId, deleted: true })
+}
+
+async function listMedicationTypes(instructorId, rawScenarioId) {
+  const scenarioId = await requireOwnedScenario(instructorId, rawScenarioId)
+  const rows = records(await execute(`
+    SELECT id, scenario_id, name, qr_code
+    FROM medication_type
+    WHERE scenario_id = :scenario_id
+    ORDER BY name, id
+  `, [['scenario_id', scenarioId]]))
+  return ok({ medicationTypes: rows.map(formatMedicationType) })
+}
+
+async function createMedicationType(instructorId, rawScenarioId, body) {
+  const scenarioId = await requireOwnedScenario(instructorId, rawScenarioId)
+  const name = requireString(body.name, 'name', { max: 256 })
+  const qrCode = body.qrCode == null ? null : requireString(body.qrCode, 'qrCode', { max: 256 })
+  const id = uuid()
+
+  const row = records(await execute(`
+    INSERT INTO medication_type (id, scenario_id, name, qr_code)
+    VALUES (:id, :scenario_id, :name, :qr_code)
+    RETURNING id, scenario_id, name, qr_code
+  `, [['id', id], ['scenario_id', scenarioId], ['name', name], ['qr_code', qrCode]]))[0]
+  return ok(formatMedicationType(row), 201)
+}
+
+async function updateMedicationType(instructorId, rawScenarioId, rawMedicationTypeId, body) {
+  const scenarioId = await requireOwnedScenario(instructorId, rawScenarioId)
+  const medicationTypeId = requireUuid(rawMedicationTypeId, 'medicationTypeId')
+  const allowed = ['name', 'qrCode']
+  if (!Object.keys(body).some((field) => allowed.includes(field))) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'At least one medication type update field is required.')
+  }
+
+  const existing = records(await execute(
+    'SELECT id FROM medication_type WHERE id = :id AND scenario_id = :scenario_id',
+    [['id', medicationTypeId], ['scenario_id', scenarioId]],
+  ))[0]
+  if (!existing) throw new ApiError(404, 'NOT_FOUND', 'Medication type not found.')
+
+  const values = [['id', medicationTypeId], ['scenario_id', scenarioId]]
+  const sets = []
+  if ('name' in body) {
+    sets.push('name = :name')
+    values.push(['name', requireString(body.name, 'name', { max: 256 })])
+  }
+  if ('qrCode' in body) {
+    sets.push('qr_code = :qr_code')
+    values.push(['qr_code', body.qrCode == null ? null : requireString(body.qrCode, 'qrCode', { max: 256 })])
+  }
+
+  const row = records(await execute(`
+    UPDATE medication_type
+    SET ${sets.join(', ')}
+    WHERE id = :id AND scenario_id = :scenario_id
+    RETURNING id, scenario_id, name, qr_code
+  `, values))[0]
+  return ok(formatMedicationType(row))
+}
+
+async function deleteMedicationType(instructorId, rawScenarioId, rawMedicationTypeId) {
+  const scenarioId = await requireOwnedScenario(instructorId, rawScenarioId)
+  const medicationTypeId = requireUuid(rawMedicationTypeId, 'medicationTypeId')
+  const existing = records(await execute(`
+    SELECT mt.id
+    FROM medication_type mt
+    WHERE mt.id = :id AND mt.scenario_id = :scenario_id
+  `, [['id', medicationTypeId], ['scenario_id', scenarioId]]))[0]
+  if (!existing) throw new ApiError(404, 'NOT_FOUND', 'Medication type not found.')
+
+  const referenced = records(await execute(`
+    SELECT id
+    FROM medication_order
+    WHERE medication_type_id = :medication_type_id
+    LIMIT 1
+  `, [['medication_type_id', medicationTypeId]]))[0]
+  if (referenced) {
+    throw new ApiError(409, 'MEDICATION_TYPE_IN_USE', 'This medication type is used by a medication order.')
+  }
+
+  await execute(
+    'DELETE FROM medication_type WHERE id = :id AND scenario_id = :scenario_id',
+    [['id', medicationTypeId], ['scenario_id', scenarioId]],
+  )
+  return ok({ id: medicationTypeId, deleted: true })
 }
 
 function formatScenarioSummary(row) {
-  return { id: row.id, title: row.title, private: row.private, patientId: row.patient_id, createdAt: row.created_at, updatedAt: row.updated_at }
+  return {
+    id: row.id,
+    title: row.title,
+    private: row.private,
+    emotiveState: row.emotive_state,
+    patientId: row.patient_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
 }
 
 function formatScenario(row) {
@@ -247,4 +442,27 @@ function formatLink(row) {
 function formatAnalytics(row) {
   const count = Number(row?.attempt_count ?? 0)
   return { attemptCount: count, avgScore: row?.avg_score == null ? null : Number(row.avg_score), stddevScore: count < 2 || row?.stddev_score == null ? null : Number(row.stddev_score), avgTimeSeconds: count === 0 || row?.avg_time_seconds == null ? null : Number(row.avg_time_seconds) }
+}
+
+function formatMarRecord(row) {
+  return {
+    id: row.id,
+    scenarioId: row.scenario_id,
+    medicationName: row.medication_name,
+    dose: row.dose,
+    route: row.route,
+    timeOffsetMinutes: row.time_offset_minutes,
+    site: row.site,
+    initials: row.initials,
+    notes: row.notes,
+  }
+}
+
+function formatMedicationType(row) {
+  return {
+    id: row.id,
+    scenarioId: row.scenario_id,
+    name: row.name,
+    qrCode: row.qr_code,
+  }
 }
