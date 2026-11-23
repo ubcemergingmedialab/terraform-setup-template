@@ -31,8 +31,6 @@ locals {
   ]
 }
 
-data "aws_caller_identity" "current" {}
-
 # S3 bucket names are globally unique, so a fresh (non-imported) deployment
 # needs a suffix to avoid colliding with another account running this stack.
 # Not created when importing — the legacy name is already fixed, and an unused

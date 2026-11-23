@@ -78,7 +78,6 @@ module "api_invoker" {
   source = "../../../modules/iam-api-invoker"
 
   name_prefix        = local.name_prefix
-  api_execution_arn  = module.api.api_execution_arn
   allowed_route_arns = [local.pins_invoke_arn]
 }
 
