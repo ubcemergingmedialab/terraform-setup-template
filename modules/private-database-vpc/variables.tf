@@ -29,8 +29,3 @@ variable "private_subnet_cidrs" {
   }
 }
 
-variable "cognito_password_minimum_length" {
-  type        = number
-  description = "Minimum password length for the Cognito user pool."
-  default     = 12
-}

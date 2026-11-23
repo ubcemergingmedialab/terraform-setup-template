@@ -298,20 +298,6 @@ resource "aws_iam_role" "cognito_unauthenticated" {
     ]
   })
 
-  inline_policy {
-    name = "DenyAll"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect   = "Deny"
-          Action   = "*"
-          Resource = "*"
-        }
-      ]
-    })
-  }
-
   tags = merge(
     var.tags,
     {
@@ -321,6 +307,23 @@ resource "aws_iam_role" "cognito_unauthenticated" {
       ManagedBy      = "terraform"
     }
   )
+}
+
+resource "aws_iam_role_policy" "cognito_unauthenticated_deny_all" {
+  count = var.federation_type == "cognito" ? 1 : 0
+
+  name = "DenyAll"
+  role = aws_iam_role.cognito_unauthenticated[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Deny"
+        Action   = "*"
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 # Attach roles to Cognito Identity Pool
@@ -336,7 +339,7 @@ resource "aws_cognito_identity_pool_roles_attachment" "bedrock" {
 }
 
 # Principal tag mapping for session tags (enables per-user cost attribution in CUR)
-resource "aws_cognito_identity_pool_principal_tag" "bedrock" {
+resource "aws_cognito_identity_pool_provider_principal_tag" "bedrock" {
   count = var.federation_type == "cognito" && var.enable_principal_tags ? 1 : 0
 
   identity_pool_id       = aws_cognito_identity_pool.bedrock[0].id
