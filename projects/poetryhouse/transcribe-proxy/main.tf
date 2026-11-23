@@ -6,9 +6,9 @@ locals {
 module "container_repo" {
   source = "../../../modules/ecr-repository"
 
-  repository_name       = "${local.name_prefix}-transcribe-proxy"
-  lifecycle_keep_count  = 10
-  scan_on_push          = true
+  repository_name      = "${local.name_prefix}-transcribe-proxy"
+  lifecycle_keep_count = 10
+  scan_on_push         = true
 }
 
 # Use default VPC (or reference an existing VPC module)
@@ -89,7 +89,7 @@ module "transcribe_proxy" {
   vpc_id             = data.aws_vpc.default.id
   public_subnet_ids  = data.aws_subnets.public.ids
   private_subnet_ids = local.private_subnet_ids
-  assign_public_ip   = true  # Required for ECR access without NAT Gateway
+  assign_public_ip   = true # Required for ECR access without NAT Gateway
 
   alb_ingress_cidr_blocks = var.allowed_cidr_blocks
 
@@ -97,7 +97,7 @@ module "transcribe_proxy" {
   enable_sticky_sessions = true
 
   # Logging
-  log_retention_days      = var.log_retention_days
+  log_retention_days        = var.log_retention_days
   enable_container_insights = var.enable_container_insights
 
   # Auto-scaling (optional)
