@@ -77,7 +77,7 @@ warns about.
 | `polly-tts-backend` | `tags = var.tags` | module-local extras | No |
 | `transcribe-batch-backend` | `tags = var.tags` | module-local extras | No |
 
-`aws_cognito_identity_pool_principal_tag.principal_tags` in `bedrock-oidc-auth`
+`aws_cognito_identity_pool_provider_principal_tag.principal_tags` in `bedrock-oidc-auth`
 is **not** a resource tag — it is a Cognito principal-tag mapping and is
 unrelated to cost-allocation tagging. Ignore it for this audit.
 
@@ -102,7 +102,7 @@ Non-taggable types present in this repo:
 - `aws_bedrock_guardrail_version` (child snapshot; the guardrail itself is taggable)
 - CloudFront helpers: `aws_cloudfront_origin_access_control`,
   `aws_cloudfront_response_headers_policy`
-- Cognito children: `aws_cognito_identity_pool_principal_tag`,
+- Cognito children: `aws_cognito_identity_pool_provider_principal_tag`,
   `aws_cognito_identity_pool_roles_attachment`, `aws_cognito_user_group`,
   `aws_cognito_user_pool_client`, `aws_cognito_user_pool_domain`
 - `aws_ecr_lifecycle_policy` (the repository is taggable)

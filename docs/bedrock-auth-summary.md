@@ -327,7 +327,7 @@ docs/
 5. **Cognito Resources** (optional, if federation_type = "cognito")
    - `aws_cognito_identity_pool`
    - `aws_cognito_identity_pool_roles_attachment`
-   - `aws_cognito_identity_pool_principal_tag` (for cost attribution)
+   - `aws_cognito_identity_pool_provider_principal_tag` (for cost attribution)
 
 ---
 
