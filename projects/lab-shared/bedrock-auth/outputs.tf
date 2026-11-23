@@ -74,8 +74,8 @@ output "credential_process_config" {
     
     Then distribute config.json with the credential-process binary to your team.
   EOT
-  value     = module.bedrock_auth.credential_process_config
-  sensitive = true
+  value       = module.bedrock_auth.credential_process_config
+  sensitive   = true
 }
 
 # ===============================================
@@ -93,7 +93,7 @@ output "deployment_summary" {
 
 output "next_steps" {
   description = "Instructions for next steps after deployment"
-  value = <<-EOT
+  value       = <<-EOT
     ✅ Bedrock authentication infrastructure deployed successfully!
     
     📋 Next Steps:

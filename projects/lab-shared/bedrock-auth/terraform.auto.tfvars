@@ -10,7 +10,7 @@
 client_name  = "lab-shared"
 project_name = "bedrock-auth"
 environment  = "prod"
-aws_region   = "us-west-2"  # Change to your preferred region
+aws_region   = "us-west-2" # Change to your preferred region
 
 # ===============================================
 # OIDC Provider Configuration

@@ -23,12 +23,12 @@ allowed_cidr_blocks = ["0.0.0.0/0"]
 
 # Auto-scaling (optional - scale to 0 when idle)
 enable_autoscaling       = true
-autoscaling_min_capacity = 0  # Scale to zero when idle
-autoscaling_max_capacity = 3  # Scale up to 3 tasks under load
+autoscaling_min_capacity = 0 # Scale to zero when idle
+autoscaling_max_capacity = 3 # Scale up to 3 tasks under load
 autoscaling_cpu_target   = 70
 
 # Logging
-log_retention_days      = 7
+log_retention_days        = 7
 enable_container_insights = false
 
 # HTTPS (optional - requires ACM certificate)

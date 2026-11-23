@@ -5,41 +5,41 @@ locals {
 module "fields_table" {
   source = "../../../modules/dynamodb-table"
 
-  name_prefix         = local.name_prefix
-  legacy_table_name   = var.legacy_dynamodb_table_name
-  table_name_suffix   = "fields"
-  hash_key            = "FieldID"
+  name_prefix       = local.name_prefix
+  legacy_table_name = var.legacy_dynamodb_table_name
+  table_name_suffix = "fields"
+  hash_key          = "FieldID"
 }
 
 module "cognito" {
   source = "../../../modules/cognito-user-pool"
 
-  name_prefix               = local.name_prefix
-  callback_urls             = var.cognito_callback_urls
-  logout_urls               = var.cognito_logout_urls
-  hosted_ui_domain_prefix   = var.cognito_hosted_ui_domain_prefix
+  name_prefix             = local.name_prefix
+  callback_urls           = var.cognito_callback_urls
+  logout_urls             = var.cognito_logout_urls
+  hosted_ui_domain_prefix = var.cognito_hosted_ui_domain_prefix
 }
 
 module "api" {
   source = "../../../modules/lambda-http-api"
 
-  name_prefix    = local.name_prefix
-  source_path    = "${path.module}/lambda"
-  handler        = "handler.handler"
-  runtime        = "nodejs20.x"
-  memory_mb      = 256
+  name_prefix     = local.name_prefix
+  source_path     = "${path.module}/lambda"
+  handler         = "handler.handler"
+  runtime         = "nodejs20.x"
+  memory_mb       = 256
   timeout_seconds = 30
 
   environment_variables = {
-    FIELDS_TABLE_NAME = module.fields_table.table_name
-    PINS_FIELD_IDS    = var.pins_field_ids
-    CORS_ALLOW_ORIGINS  = join(",", var.cors_allow_origins)
+    FIELDS_TABLE_NAME  = module.fields_table.table_name
+    PINS_FIELD_IDS     = var.pins_field_ids
+    CORS_ALLOW_ORIGINS = join(",", var.cors_allow_origins)
   }
 
   dynamodb_table_arns = [module.fields_table.table_arn]
 
-  cognito_jwt_issuer  = module.cognito.jwt_issuer
-  cognito_audiences   = [module.cognito.user_pool_client_id]
+  cognito_jwt_issuer = module.cognito.jwt_issuer
+  cognito_audiences  = [module.cognito.user_pool_client_id]
 
   cors_allow_origins = var.cors_allow_origins
 
@@ -69,7 +69,7 @@ module "assets" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  api_id = module.api.api_id
+  api_id          = module.api.api_id
   pins_invoke_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${local.api_id}/$default/GET/pins"
 }
 

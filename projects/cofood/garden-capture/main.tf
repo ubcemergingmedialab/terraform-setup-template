@@ -31,9 +31,9 @@ module "api" {
   timeout_seconds = 30
 
   environment_variables = {
-    GARDEN_TABLE_NAME   = module.garden_table.table_name
-    PUBLIC_CAPTURE_IDS  = var.public_capture_ids
-    CORS_ALLOW_ORIGINS  = join(",", var.cors_allow_origins)
+    GARDEN_TABLE_NAME  = module.garden_table.table_name
+    PUBLIC_CAPTURE_IDS = var.public_capture_ids
+    CORS_ALLOW_ORIGINS = join(",", var.cors_allow_origins)
   }
 
   dynamodb_table_arns = [module.garden_table.table_arn]

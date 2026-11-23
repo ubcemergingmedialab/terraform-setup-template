@@ -8,7 +8,7 @@ terraform {
 
   # HCP Terraform configuration - update organization and workspace names
   cloud {
-    organization = "your-lab-organization"  # TODO: Replace with your HCP org name
+    organization = "your-lab-organization" # TODO: Replace with your HCP org name
 
     workspaces {
       name = "lab-shared-bedrock-auth"
@@ -78,8 +78,8 @@ module "bedrock_auth" {
   allowed_bedrock_regions = var.allowed_bedrock_regions
 
   # Monitoring
-  enable_monitoring   = var.enable_monitoring
-  log_retention_days  = var.log_retention_days
+  enable_monitoring  = var.enable_monitoring
+  log_retention_days = var.log_retention_days
 
   # Pass through default tags
   tags = merge(
