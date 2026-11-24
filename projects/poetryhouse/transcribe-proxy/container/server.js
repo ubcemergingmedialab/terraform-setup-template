@@ -32,6 +32,23 @@ wss.on('connection', async (ws, req) => {
     let transcribeClient = null;
     let isClosing = false;
 
+    // Per-connection audio diagnostics, summarized periodically
+    const STATS_INTERVAL_MS = 5000;
+    let framesTotal = 0;
+    let bytesTotal = 0;
+    let peakTotal = 0;
+    let framesSinceLast = 0;
+    let peakSinceLast = 0;
+    let resultsTotal = 0;
+    const statsTimer = setInterval(() => {
+        if (framesSinceLast === 0) return;
+        console.log(`[${connectionId}] Audio stats: frames=${framesTotal} bytes=${bytesTotal} ` +
+            `rate=${lastSampleRate}Hz last5s(frames=${framesSinceLast}, peak=${peakSinceLast}/32767) ` +
+            `results=${resultsTotal}`);
+        framesSinceLast = 0;
+        peakSinceLast = 0;
+    }, STATS_INTERVAL_MS);
+
     try {
         // Create AWS Transcribe client
         transcribeClient = new TranscribeStreamingClient({ 
@@ -71,6 +88,21 @@ wss.on('connection', async (ws, req) => {
                     console.warn(`[${connectionId}] Received empty audio chunk`);
                     return;
                 }
+
+                // Diagnostics: count frames/bytes and track peak amplitude (PCM16 LE)
+                if (framesTotal === 0) {
+                    console.log(`[${connectionId}] First audio frame: ${audioData.length} bytes at ${sampleRate} Hz`);
+                }
+                framesTotal++;
+                framesSinceLast++;
+                bytesTotal += audioData.length;
+                let peak = 0;
+                for (let i = 0; i + 1 < audioData.length; i += 2) {
+                    const v = Math.abs(audioData.readInt16LE(i));
+                    if (v > peak) peak = v;
+                }
+                if (peak > peakSinceLast) peakSinceLast = peak;
+                if (peak > peakTotal) peakTotal = peak;
 
                 // If sample rate changed, restart Transcribe session
                 if (sampleRate !== lastSampleRate) {
@@ -134,6 +166,9 @@ wss.on('connection', async (ws, req) => {
                                         const transcript = result.Alternatives[0].Transcript;
                                         const isPartial = result.IsPartial;
 
+                                        resultsTotal++;
+                                        console.log(`[${connectionId}] Transcribe result (partial=${isPartial}, ${transcript ? transcript.length : 0} chars)`);
+
                                         if (transcript && ws.readyState === WebSocket.OPEN) {
                                             // Send JSON response to Unreal
                                             ws.send(JSON.stringify({
@@ -189,8 +224,10 @@ wss.on('connection', async (ws, req) => {
 
     ws.on('close', () => {
         isClosing = true;
+        clearInterval(statsTimer);
         activeConnections--;
-        console.log(`[${connectionId}] Client disconnected (active: ${activeConnections})`);
+        console.log(`[${connectionId}] Client disconnected (active: ${activeConnections}) ` +
+            `frames=${framesTotal} bytes=${bytesTotal} peak=${peakTotal}/32767 results=${resultsTotal}`);
         
         // Cleanup
         if (audioStream && !audioStream.destroyed) {
@@ -200,6 +237,7 @@ wss.on('connection', async (ws, req) => {
 
     ws.on('error', (error) => {
         isClosing = true;
+        clearInterval(statsTimer);
         console.error(`[${connectionId}] WebSocket error:`, error.message);
         
         // Cleanup
